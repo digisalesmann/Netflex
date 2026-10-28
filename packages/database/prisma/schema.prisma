@@ -1,0 +1,1117 @@
+// NetFlex database schema.
+// Conventions (ADR-0005): UTC timestamptz, money as BigInt minor units + ISO currency,
+// UUID primary keys. Constraints Prisma cannot express (CHECKs, partial unique
+// indexes, append-only triggers) live in the SQL migrations and are documented in
+// docs/architecture/database.md.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================ Enums
+
+enum UserKind {
+  STAFF
+  TENANT
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum AccessScope {
+  INDIVIDUAL
+  ROOM
+  FLOOR
+}
+
+enum DurationUnit {
+  MINUTE
+  HOUR
+  DAY
+  WEEK
+  CALENDAR_MONTH
+}
+
+enum ActivationPolicy {
+  ON_PURCHASE
+  ON_FIRST_REDEMPTION
+  ON_FIRST_AUTHORIZATION
+}
+
+enum RenewalRule {
+  STACK_AFTER_CURRENT_EXPIRY
+  EXTEND_FROM_NOW
+  REPLACE
+}
+
+enum PlanStatus {
+  DRAFT
+  PUBLISHED
+  PAUSED
+  ARCHIVED
+}
+
+enum OrderStatus {
+  CREATED
+  AWAITING_PAYMENT
+  PAID
+  FAILED
+  EXPIRED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentProviderKind {
+  PAYSTACK
+  FAKE
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  SUCCEEDED
+  FAILED
+  ABANDONED
+  EXPIRED
+  PARTIALLY_REFUNDED
+  REFUNDED
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  SUBMITTED
+  SUCCEEDED
+  FAILED
+}
+
+enum VoucherStatus {
+  GENERATED
+  ISSUED
+  ACTIVE
+  EXHAUSTED
+  EXPIRED
+  SUSPENDED
+  REVOKED
+}
+
+enum IssuanceType {
+  PAID
+  COMPLIMENTARY
+  MANUAL
+  PROMOTIONAL
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  REVOKED
+}
+
+enum EntitlementStatus {
+  PENDING_ACTIVATION
+  PROVISIONING
+  ACTIVE
+  PROVISIONING_FAILED
+  SUSPENDED
+  EXPIRED
+  REVOKED
+}
+
+enum NetworkDesiredState {
+  NONE
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum GroupRole {
+  MANAGER
+  MEMBER
+}
+
+enum GatewayVendor {
+  MIKROTIK
+  UNIFI
+  OTHER
+  FAKE
+}
+
+enum GatewayStatus {
+  UNVERIFIED
+  HEALTHY
+  DEGRADED
+  UNREACHABLE
+  DISABLED
+}
+
+enum NetworkZoneKind {
+  SSID
+  VLAN
+  INTERFACE
+}
+
+enum NetworkOperationType {
+  ACTIVATE
+  APPLY_POLICY
+  SUSPEND
+  REVOKE
+  DISCONNECT
+  RECONCILE
+}
+
+enum NetworkOperationStatus {
+  PENDING
+  IN_PROGRESS
+  SUCCEEDED
+  RETRY_SCHEDULED
+  FAILED
+  CANCELLED
+}
+
+enum SessionSource {
+  ADAPTER_POLL
+  RADIUS_ACCOUNTING
+}
+
+enum NotificationChannel {
+  SMS
+  EMAIL
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_ON_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum ActorType {
+  USER
+  SYSTEM
+  PROVIDER
+}
+
+enum DiscrepancyKind {
+  PAYMENT_STATE_MISMATCH
+  PAYMENT_AMOUNT_MISMATCH
+  LATE_SUCCESS_ON_CLOSED_PAYMENT
+  PAID_WITHOUT_ENTITLEMENT
+  ENTITLEMENT_WITHOUT_PAYMENT
+  NETWORK_DRIFT
+  SESSION_WITHOUT_ENTITLEMENT
+  EXPIRED_BUT_ACTIVE_ON_GATEWAY
+}
+
+// ============================================================ Identity
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  kind         UserKind
+  status       UserStatus @default(ACTIVE)
+  displayName  String     @db.VarChar(120)
+  /// E.164, e.g. +2348012345678
+  phoneE164    String?    @unique @db.VarChar(16)
+  email        String?    @unique @db.VarChar(254)
+  /// Staff only. argon2id/scrypt hash, never plaintext.
+  passwordHash String?
+  /// Encrypted TOTP secret (staff MFA). Never returned by the API.
+  mfaSecretEnc String?
+  mfaEnabled   Boolean    @default(false)
+  createdAt    DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
+
+  roles                 UserRole[]                  @relation("UserRoles")
+  rolesGranted          UserRole[]                  @relation("RoleGrantedBy")
+  sessions              Session[]
+  assignments           TenantAssignment[]          @relation("AssignmentTenant")
+  assignmentsMade       TenantAssignment[]          @relation("AssignmentCreatedBy")
+  groupAuthorities      GroupAuthority[]            @relation("AuthorityHolder")
+  authoritiesGiven      GroupAuthority[]            @relation("AuthorityGrantedBy")
+  memberships           GroupMembership[]           @relation("MembershipUser")
+  membershipsAdded      GroupMembership[]           @relation("MembershipAddedBy")
+  devices               Device[]
+  orders                Order[]                     @relation("OrderCustomer")
+  ordersTargeted        Order[]                     @relation("OrderTargetUser")
+  vouchersIssued        Voucher[]                   @relation("VoucherIssuedBy")
+  refundsRequested      Refund[]                    @relation("RefundRequestedBy")
+  refundsApproved       Refund[]                    @relation("RefundApprovedBy")
+  subscriptionsOwned    Subscription[]              @relation("SubscriptionOwner")
+  subscriptionsTargeted Subscription[]              @relation("SubscriptionTargetUser")
+  entitlementsTargeted  Entitlement[]               @relation("EntitlementTargetUser")
+  planVersionsCreated   PlanVersion[]
+  redemptions           VoucherRedemption[]
+  tickets               SupportTicket[]             @relation("TicketRequester")
+  ticketsAssigned       SupportTicket[]             @relation("TicketAssignee")
+  notifications         Notification[]
+  auditEntries          AuditLog[]
+  networkOpsRequested   NetworkOperation[]
+  settingsUpdated       SystemSetting[]
+  discrepanciesResolved ReconciliationDiscrepancy[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String           @id @default(uuid()) @db.Uuid
+  /// OWNER, PROPERTY_ADMIN, NETWORK_ADMIN, FINANCE, SUPPORT, TENANT, GROUP_MANAGER
+  key         String           @unique @db.VarChar(40)
+  name        String           @db.VarChar(80)
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String           @id @default(uuid()) @db.Uuid
+  /// e.g. "voucher.issue", "payment.refund.approve"
+  key         String           @unique @db.VarChar(80)
+  description String
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String     @db.Uuid
+  permissionId String     @db.Uuid
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+/// propertyId NULL = platform-wide grant (OWNER only, enforced by CHECK in SQL).
+model UserRole {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  roleId      String    @db.Uuid
+  propertyId  String?   @db.Uuid
+  grantedById String?   @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  revokedAt   DateTime? @db.Timestamptz(3)
+
+  user      User      @relation("UserRoles", fields: [userId], references: [id], onDelete: Restrict)
+  role      Role      @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  property  Property? @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  grantedBy User?     @relation("RoleGrantedBy", fields: [grantedById], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@map("user_roles")
+}
+
+model Session {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @db.Uuid
+  /// HMAC of the opaque session token. The token itself is only in the cookie.
+  tokenVerifier String    @unique @db.Char(64)
+  mfaVerifiedAt DateTime? @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  lastSeenAt    DateTime  @default(now()) @db.Timestamptz(3)
+  expiresAt     DateTime  @db.Timestamptz(3)
+  revokedAt     DateTime? @db.Timestamptz(3)
+  ipAddress     String?   @db.Inet
+  userAgent     String?   @db.VarChar(400)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@map("sessions")
+}
+
+model OtpChallenge {
+  id           String    @id @default(uuid()) @db.Uuid
+  phoneE164    String    @db.VarChar(16)
+  /// SIGN_IN, VERIFY_PHONE, RECOVERY
+  purpose      String    @db.VarChar(24)
+  /// HMAC of the code. Never the code.
+  codeVerifier String    @db.Char(64)
+  attempts     Int       @default(0)
+  maxAttempts  Int       @default(5)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  expiresAt    DateTime  @db.Timestamptz(3)
+  consumedAt   DateTime? @db.Timestamptz(3)
+
+  @@index([phoneE164, createdAt])
+  @@map("otp_challenges")
+}
+
+// ============================================================ Property hierarchy
+
+model Property {
+  id           String   @id @default(uuid()) @db.Uuid
+  slug         String   @unique @db.VarChar(60)
+  name         String   @db.VarChar(120)
+  /// IANA time zone, e.g. Africa/Lagos
+  timeZone     String   @db.VarChar(64)
+  currency     String   @db.Char(3)
+  supportPhone String?  @db.VarChar(32)
+  supportEmail String?  @db.VarChar(254)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  buildings     Building[]
+  floors        Floor[]
+  rooms         Room[]
+  userRoles     UserRole[]
+  assignments   TenantAssignment[]
+  authorities   GroupAuthority[]
+  devices       Device[]
+  gateways      Gateway[]
+  accessPoints  AccessPoint[]
+  zones         NetworkZone[]
+  plans         Plan[]
+  orders        Order[]
+  vouchers      Voucher[]
+  subscriptions Subscription[]
+  entitlements  Entitlement[]
+  sessions      NetworkSession[]
+  networkOps    NetworkOperation[]
+  tickets       SupportTicket[]
+  settings      SystemSetting[]
+  auditEntries  AuditLog[]
+  discrepancies ReconciliationDiscrepancy[]
+
+  @@map("properties")
+}
+
+model Building {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String   @db.Uuid
+  name       String   @db.VarChar(80)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  floors   Floor[]
+
+  @@unique([propertyId, name])
+  @@unique([id, propertyId])
+  @@map("buildings")
+}
+
+/// propertyId is denormalized for scoping; the composite FK guarantees it matches the building's.
+model Floor {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String   @db.Uuid
+  buildingId String   @db.Uuid
+  label      String   @db.VarChar(40)
+  level      Int
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  property      Property         @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  building      Building         @relation(fields: [buildingId, propertyId], references: [id, propertyId], onDelete: Restrict)
+  rooms         Room[]
+  authorities   GroupAuthority[]
+  accessPoints  AccessPoint[]
+  zones         NetworkZone[]
+  orders        Order[]
+  subscriptions Subscription[]
+  entitlements  Entitlement[]
+
+  @@unique([buildingId, level])
+  @@unique([id, propertyId])
+  @@map("floors")
+}
+
+model Room {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String   @db.Uuid
+  floorId    String   @db.Uuid
+  label      String   @db.VarChar(40)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  property      Property           @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  floor         Floor              @relation(fields: [floorId, propertyId], references: [id, propertyId], onDelete: Restrict)
+  assignments   TenantAssignment[]
+  authorities   GroupAuthority[]
+  zones         NetworkZone[]
+  orders        Order[]
+  subscriptions Subscription[]
+  entitlements  Entitlement[]
+
+  @@unique([floorId, label])
+  @@unique([id, propertyId])
+  @@map("rooms")
+}
+
+/// History of who lives where. One open assignment per user per property (partial unique in SQL).
+model TenantAssignment {
+  id          String    @id @default(uuid()) @db.Uuid
+  propertyId  String    @db.Uuid
+  userId      String    @db.Uuid
+  roomId      String    @db.Uuid
+  startsAt    DateTime  @db.Timestamptz(3)
+  endsAt      DateTime? @db.Timestamptz(3)
+  reason      String?   @db.VarChar(200)
+  createdById String    @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+
+  property  Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  user      User     @relation("AssignmentTenant", fields: [userId], references: [id], onDelete: Restrict)
+  room      Room     @relation(fields: [roomId, propertyId], references: [id, propertyId], onDelete: Restrict)
+  createdBy User     @relation("AssignmentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([roomId, endsAt])
+  @@index([userId, endsAt])
+  @@map("tenant_assignments")
+}
+
+/// Explicit authority to purchase/manage ROOM or FLOOR access (spec §7).
+model GroupAuthority {
+  id          String      @id @default(uuid()) @db.Uuid
+  propertyId  String      @db.Uuid
+  userId      String      @db.Uuid
+  scope       AccessScope
+  roomId      String?     @db.Uuid
+  floorId     String?     @db.Uuid
+  grantedById String      @db.Uuid
+  grantedAt   DateTime    @default(now()) @db.Timestamptz(3)
+  revokedAt   DateTime?   @db.Timestamptz(3)
+
+  property  Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  user      User     @relation("AuthorityHolder", fields: [userId], references: [id], onDelete: Restrict)
+  room      Room?    @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  floor     Floor?   @relation(fields: [floorId], references: [id], onDelete: Restrict)
+  grantedBy User     @relation("AuthorityGrantedBy", fields: [grantedById], references: [id], onDelete: Restrict)
+
+  @@index([userId, revokedAt])
+  @@map("group_authorities")
+}
+
+// ============================================================ Network inventory
+
+model Device {
+  id          String   @id @default(uuid()) @db.Uuid
+  propertyId  String   @db.Uuid
+  userId      String?  @db.Uuid
+  /// Lower-case colon form. May be randomized per network by the client OS.
+  macAddress  String   @db.VarChar(17)
+  label       String?  @db.VarChar(60)
+  firstSeenAt DateTime @default(now()) @db.Timestamptz(3)
+  lastSeenAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  property    Property            @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  user        User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  redemptions VoucherRedemption[]
+  sessions    NetworkSession[]
+
+  @@unique([propertyId, macAddress])
+  @@map("devices")
+}
+
+/// Management address and credentials are NOT stored here; `credentialRef` names a
+/// secret in the secret store. Browsers can never supply gateway addresses.
+model Gateway {
+  id            String        @id @default(uuid()) @db.Uuid
+  propertyId    String        @db.Uuid
+  name          String        @db.VarChar(80)
+  vendor        GatewayVendor
+  model         String?       @db.VarChar(80)
+  firmware      String?       @db.VarChar(40)
+  credentialRef String        @db.VarChar(120)
+  status        GatewayStatus @default(UNVERIFIED)
+  /// Last capability report from adapter.getCapabilities().
+  capabilities  Json?
+  lastHealthAt  DateTime?     @db.Timestamptz(3)
+  lastHealthyAt DateTime?     @db.Timestamptz(3)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(3)
+
+  property     Property           @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  accessPoints AccessPoint[]
+  zones        NetworkZone[]
+  sessions     NetworkSession[]
+  operations   NetworkOperation[]
+
+  @@unique([propertyId, name])
+  @@map("gateways")
+}
+
+model AccessPoint {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String   @db.Uuid
+  gatewayId  String?  @db.Uuid
+  floorId    String?  @db.Uuid
+  name       String   @db.VarChar(80)
+  model      String?  @db.VarChar(80)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  gateway  Gateway? @relation(fields: [gatewayId], references: [id], onDelete: SetNull)
+  floor    Floor?   @relation(fields: [floorId], references: [id], onDelete: SetNull)
+
+  @@map("access_points")
+}
+
+model NetworkZone {
+  id         String          @id @default(uuid()) @db.Uuid
+  propertyId String          @db.Uuid
+  gatewayId  String          @db.Uuid
+  name       String          @db.VarChar(80)
+  kind       NetworkZoneKind
+  /// SSID name, VLAN id, or interface name as configured on the gateway.
+  identifier String          @db.VarChar(64)
+  floorId    String?         @db.Uuid
+  roomId     String?         @db.Uuid
+  createdAt  DateTime        @default(now()) @db.Timestamptz(3)
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  gateway  Gateway  @relation(fields: [gatewayId], references: [id], onDelete: Restrict)
+  floor    Floor?   @relation(fields: [floorId], references: [id], onDelete: SetNull)
+  room     Room?    @relation(fields: [roomId], references: [id], onDelete: SetNull)
+
+  @@unique([gatewayId, kind, identifier])
+  @@map("network_zones")
+}
+
+// ============================================================ Catalog
+
+model Plan {
+  id         String     @id @default(uuid()) @db.Uuid
+  propertyId String     @db.Uuid
+  slug       String     @db.VarChar(60)
+  status     PlanStatus @default(DRAFT)
+  createdAt  DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime   @updatedAt @db.Timestamptz(3)
+
+  property Property      @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  versions PlanVersion[]
+
+  @@unique([propertyId, slug])
+  @@map("plans")
+}
+
+/// Immutable once `lockedAt` is set (first order). Enforced by trigger in SQL.
+model PlanVersion {
+  id                    String           @id @default(uuid()) @db.Uuid
+  planId                String           @db.Uuid
+  version               Int
+  name                  String           @db.VarChar(80)
+  description           String           @db.VarChar(1000)
+  scope                 AccessScope
+  priceMinor            BigInt
+  currency              String           @db.Char(3)
+  durationValue         Int
+  durationUnit          DurationUnit
+  activationPolicy      ActivationPolicy
+  redemptionWindowValue Int?
+  redemptionWindowUnit  DurationUnit?
+  maxDevices            Int
+  maxConcurrentSessions Int
+  downloadKbps          Int?
+  uploadKbps            Int?
+  maxGroupMembers       Int?
+  renewalRule           RenewalRule
+  availableFrom         DateTime?        @db.Timestamptz(3)
+  availableUntil        DateTime?        @db.Timestamptz(3)
+  fairUseText           String?          @db.VarChar(2000)
+  refundPolicyText      String           @db.VarChar(2000)
+  termsVersion          String           @db.VarChar(40)
+  createdById           String           @db.Uuid
+  createdAt             DateTime         @default(now()) @db.Timestamptz(3)
+  publishedAt           DateTime?        @db.Timestamptz(3)
+  lockedAt              DateTime?        @db.Timestamptz(3)
+
+  plan          Plan           @relation(fields: [planId], references: [id], onDelete: Restrict)
+  createdBy     User           @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  orders        Order[]
+  subscriptions Subscription[]
+
+  @@unique([planId, version])
+  @@map("plan_versions")
+}
+
+// ============================================================ Commerce
+
+model Order {
+  id             String      @id @default(uuid()) @db.Uuid
+  /// Human-friendly reference shown on receipts, e.g. NFX-7K3M-Q9TD
+  reference      String      @unique @db.VarChar(24)
+  propertyId     String      @db.Uuid
+  customerUserId String?     @db.Uuid
+  customerPhone  String?     @db.VarChar(16)
+  planVersionId  String      @db.Uuid
+  scope          AccessScope
+  targetUserId   String?     @db.Uuid
+  targetRoomId   String?     @db.Uuid
+  targetFloorId  String?     @db.Uuid
+  amountMinor    BigInt
+  currency       String      @db.Char(3)
+  /// Full immutable copy of plan terms at purchase time.
+  planSnapshot   Json
+  status         OrderStatus @default(CREATED)
+  createdAt      DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @db.Timestamptz(3)
+  expiresAt      DateTime    @db.Timestamptz(3)
+  paidAt         DateTime?   @db.Timestamptz(3)
+
+  property     Property      @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  customer     User?         @relation("OrderCustomer", fields: [customerUserId], references: [id], onDelete: Restrict)
+  planVersion  PlanVersion   @relation(fields: [planVersionId], references: [id], onDelete: Restrict)
+  targetUser   User?         @relation("OrderTargetUser", fields: [targetUserId], references: [id], onDelete: Restrict)
+  targetRoom   Room?         @relation(fields: [targetRoomId], references: [id], onDelete: Restrict)
+  targetFloor  Floor?        @relation(fields: [targetFloorId], references: [id], onDelete: Restrict)
+  payments     Payment[]
+  subscription Subscription?
+  vouchers     Voucher[]
+
+  @@index([propertyId, status, createdAt])
+  @@index([customerUserId, createdAt])
+  @@map("orders")
+}
+
+model Payment {
+  id                    String              @id @default(uuid()) @db.Uuid
+  orderId               String              @db.Uuid
+  provider              PaymentProviderKind
+  /// Our reference sent to the provider. Unique per provider.
+  providerReference     String              @db.VarChar(64)
+  providerTransactionId String?             @db.VarChar(64)
+  amountMinor           BigInt
+  currency              String              @db.Char(3)
+  status                PaymentStatus       @default(CREATED)
+  verifiedAt            DateTime?           @db.Timestamptz(3)
+  failureCode           String?             @db.VarChar(64)
+  refundedMinor         BigInt              @default(0)
+  createdAt             DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime            @updatedAt @db.Timestamptz(3)
+
+  order         Order                       @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  refunds       Refund[]
+  discrepancies ReconciliationDiscrepancy[]
+
+  @@unique([provider, providerReference])
+  @@index([status, createdAt])
+  @@index([orderId])
+  @@map("payments")
+}
+
+/// Every received webhook, deduplicated by a fingerprint of the raw body.
+model PaymentEvent {
+  id                String              @id @default(uuid()) @db.Uuid
+  provider          PaymentProviderKind
+  /// SHA-256 of the raw request body.
+  fingerprint       String              @db.Char(64)
+  eventType         String              @db.VarChar(64)
+  providerReference String?             @db.VarChar(64)
+  signatureValid    Boolean
+  receivedAt        DateTime            @default(now()) @db.Timestamptz(3)
+  processedAt       DateTime?           @db.Timestamptz(3)
+  processingError   String?             @db.VarChar(200)
+  /// Payload with customer PII and authorization data removed.
+  payloadRedacted   Json
+
+  @@unique([provider, fingerprint])
+  @@index([providerReference])
+  @@map("payment_events")
+}
+
+model Refund {
+  id               String       @id @default(uuid()) @db.Uuid
+  paymentId        String       @db.Uuid
+  amountMinor      BigInt
+  currency         String       @db.Char(3)
+  status           RefundStatus @default(REQUESTED)
+  reason           String       @db.VarChar(500)
+  requestedById    String       @db.Uuid
+  approvedById     String?      @db.Uuid
+  providerRefundId String?      @db.VarChar(64)
+  createdAt        DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(3)
+  completedAt      DateTime?    @db.Timestamptz(3)
+
+  payment     Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  requestedBy User    @relation("RefundRequestedBy", fields: [requestedById], references: [id], onDelete: Restrict)
+  approvedBy  User?   @relation("RefundApprovedBy", fields: [approvedById], references: [id], onDelete: Restrict)
+
+  @@index([paymentId])
+  @@map("refunds")
+}
+
+// ============================================================ Access
+
+model Subscription {
+  id               String             @id @default(uuid()) @db.Uuid
+  propertyId       String             @db.Uuid
+  /// NULL for admin-issued access. One subscription per order (unique).
+  orderId          String?            @unique @db.Uuid
+  planVersionId    String             @db.Uuid
+  planSnapshot     Json
+  scope            AccessScope
+  ownerUserId      String?            @db.Uuid
+  targetUserId     String?            @db.Uuid
+  targetRoomId     String?            @db.Uuid
+  targetFloorId    String?            @db.Uuid
+  activationPolicy ActivationPolicy
+  status           SubscriptionStatus @default(PENDING)
+  /// Previous subscription when this is a renewal.
+  renewsId         String?            @unique @db.Uuid
+  createdAt        DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime           @updatedAt @db.Timestamptz(3)
+
+  property    Property          @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  order       Order?            @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  planVersion PlanVersion       @relation(fields: [planVersionId], references: [id], onDelete: Restrict)
+  owner       User?             @relation("SubscriptionOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  targetUser  User?             @relation("SubscriptionTargetUser", fields: [targetUserId], references: [id], onDelete: Restrict)
+  targetRoom  Room?             @relation(fields: [targetRoomId], references: [id], onDelete: Restrict)
+  targetFloor Floor?            @relation(fields: [targetFloorId], references: [id], onDelete: Restrict)
+  renews      Subscription?     @relation("Renewal", fields: [renewsId], references: [id], onDelete: Restrict)
+  renewedBy   Subscription?     @relation("Renewal")
+  entitlement Entitlement?
+  memberships GroupMembership[]
+
+  @@index([propertyId, status])
+  @@index([ownerUserId])
+  @@map("subscriptions")
+}
+
+/// Authorization to use a network scope. Holds DESIRED network state; observed
+/// state comes from NetworkOperation read-backs and reconciliation.
+model Entitlement {
+  id                    String               @id @default(uuid()) @db.Uuid
+  propertyId            String               @db.Uuid
+  subscriptionId        String               @unique @db.Uuid
+  scope                 AccessScope
+  targetUserId          String?              @db.Uuid
+  targetRoomId          String?              @db.Uuid
+  targetFloorId         String?              @db.Uuid
+  status                EntitlementStatus    @default(PENDING_ACTIVATION)
+  activationDeadline    DateTime?            @db.Timestamptz(3)
+  startsAt              DateTime?            @db.Timestamptz(3)
+  /// Computed once and persisted; shared by every device in a group (half-open).
+  expiresAt             DateTime?            @db.Timestamptz(3)
+  maxDevices            Int
+  maxConcurrentSessions Int
+  downloadKbps          Int?
+  uploadKbps            Int?
+  desiredNetworkState   NetworkDesiredState  @default(NONE)
+  observedNetworkState  NetworkDesiredState?
+  observedAt            DateTime?            @db.Timestamptz(3)
+  createdAt             DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime             @updatedAt @db.Timestamptz(3)
+
+  property      Property                    @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  subscription  Subscription                @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  targetUser    User?                       @relation("EntitlementTargetUser", fields: [targetUserId], references: [id], onDelete: Restrict)
+  targetRoom    Room?                       @relation(fields: [targetRoomId], references: [id], onDelete: Restrict)
+  targetFloor   Floor?                      @relation(fields: [targetFloorId], references: [id], onDelete: Restrict)
+  vouchers      Voucher[]
+  redemptions   VoucherRedemption[]
+  sessions      NetworkSession[]
+  operations    NetworkOperation[]
+  discrepancies ReconciliationDiscrepancy[]
+
+  @@index([status, expiresAt])
+  @@index([propertyId, status])
+  @@map("entitlements")
+}
+
+/// The customer credential. Stores only a keyed verifier of the code (ADR-0003).
+model Voucher {
+  id                 String        @id @default(uuid()) @db.Uuid
+  propertyId         String        @db.Uuid
+  verifier           String        @unique @db.Char(64)
+  verifierKeyVersion Int
+  /// Last 4 characters, for support lookups.
+  hint               String        @db.Char(4)
+  status             VoucherStatus @default(GENERATED)
+  issuanceType       IssuanceType
+  scope              AccessScope
+  orderId            String?       @db.Uuid
+  entitlementId      String?       @db.Uuid
+  issuedById         String?       @db.Uuid
+  issueReason        String?       @db.VarChar(300)
+  redeemBy           DateTime?     @db.Timestamptz(3)
+  replacesVoucherId  String?       @unique @db.Uuid
+  createdAt          DateTime      @default(now()) @db.Timestamptz(3)
+  issuedAt           DateTime?     @db.Timestamptz(3)
+  activatedAt        DateTime?     @db.Timestamptz(3)
+  revokedAt          DateTime?     @db.Timestamptz(3)
+  revokeReason       String?       @db.VarChar(300)
+
+  property    Property            @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  order       Order?              @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  entitlement Entitlement?        @relation(fields: [entitlementId], references: [id], onDelete: Restrict)
+  issuedBy    User?               @relation("VoucherIssuedBy", fields: [issuedById], references: [id], onDelete: Restrict)
+  replaces    Voucher?            @relation("Reissue", fields: [replacesVoucherId], references: [id], onDelete: Restrict)
+  replacedBy  Voucher?            @relation("Reissue")
+  redemptions VoucherRedemption[]
+
+  @@index([propertyId, status])
+  @@index([entitlementId])
+  @@index([hint])
+  @@map("vouchers")
+}
+
+/// One row per device bound to a voucher. releasedAt frees a device slot.
+model VoucherRedemption {
+  id            String    @id @default(uuid()) @db.Uuid
+  voucherId     String    @db.Uuid
+  entitlementId String    @db.Uuid
+  deviceId      String    @db.Uuid
+  userId        String?   @db.Uuid
+  redeemedAt    DateTime  @default(now()) @db.Timestamptz(3)
+  releasedAt    DateTime? @db.Timestamptz(3)
+
+  voucher     Voucher     @relation(fields: [voucherId], references: [id], onDelete: Restrict)
+  entitlement Entitlement @relation(fields: [entitlementId], references: [id], onDelete: Restrict)
+  device      Device      @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+  user        User?       @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([entitlementId, releasedAt])
+  @@map("voucher_redemptions")
+}
+
+model GroupMembership {
+  id             String    @id @default(uuid()) @db.Uuid
+  subscriptionId String    @db.Uuid
+  userId         String    @db.Uuid
+  role           GroupRole @default(MEMBER)
+  addedById      String    @db.Uuid
+  addedAt        DateTime  @default(now()) @db.Timestamptz(3)
+  removedAt      DateTime? @db.Timestamptz(3)
+  removedById    String?   @db.Uuid
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  user         User         @relation("MembershipUser", fields: [userId], references: [id], onDelete: Restrict)
+  addedBy      User         @relation("MembershipAddedBy", fields: [addedById], references: [id], onDelete: Restrict)
+
+  @@index([userId, removedAt])
+  @@map("group_memberships")
+}
+
+// ============================================================ Network operations
+
+model NetworkSession {
+  id               String        @id @default(uuid()) @db.Uuid
+  propertyId       String        @db.Uuid
+  gatewayId        String        @db.Uuid
+  entitlementId    String?       @db.Uuid
+  deviceId         String?       @db.Uuid
+  gatewaySessionId String        @db.VarChar(64)
+  macAddress       String        @db.VarChar(17)
+  ipAddress        String?       @db.Inet
+  source           SessionSource
+  startedAt        DateTime      @db.Timestamptz(3)
+  lastSeenAt       DateTime      @db.Timestamptz(3)
+  endedAt          DateTime?     @db.Timestamptz(3)
+  bytesIn          BigInt?
+  bytesOut         BigInt?
+
+  property    Property      @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  gateway     Gateway       @relation(fields: [gatewayId], references: [id], onDelete: Restrict)
+  entitlement Entitlement?  @relation(fields: [entitlementId], references: [id], onDelete: SetNull)
+  device      Device?       @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  samples     UsageSample[]
+
+  @@unique([gatewayId, gatewaySessionId])
+  @@index([entitlementId, endedAt])
+  @@map("network_sessions")
+}
+
+model UsageSample {
+  id        BigInt   @id @default(autoincrement())
+  sessionId String   @db.Uuid
+  sampledAt DateTime @db.Timestamptz(3)
+  bytesIn   BigInt
+  bytesOut  BigInt
+
+  session NetworkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, sampledAt])
+  @@map("usage_samples")
+}
+
+/// Durable record of every gateway mutation: desired state, attempts, safe errors, result.
+model NetworkOperation {
+  id              String                 @id @default(uuid()) @db.Uuid
+  idempotencyKey  String                 @unique @db.VarChar(120)
+  propertyId      String                 @db.Uuid
+  gatewayId       String?                @db.Uuid
+  entitlementId   String?                @db.Uuid
+  type            NetworkOperationType
+  desiredState    Json
+  status          NetworkOperationStatus @default(PENDING)
+  attempts        Int                    @default(0)
+  maxAttempts     Int                    @default(8)
+  nextAttemptAt   DateTime?              @db.Timestamptz(3)
+  lastErrorCode   String?                @db.VarChar(64)
+  lastErrorDetail String?                @db.VarChar(500)
+  /// Read-back summary after the mutation (never raw router output).
+  verification    Json?
+  requestedById   String?                @db.Uuid
+  createdAt       DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime               @updatedAt @db.Timestamptz(3)
+  completedAt     DateTime?              @db.Timestamptz(3)
+
+  property    Property     @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  gateway     Gateway?     @relation(fields: [gatewayId], references: [id], onDelete: Restrict)
+  entitlement Entitlement? @relation(fields: [entitlementId], references: [id], onDelete: Restrict)
+  requestedBy User?        @relation(fields: [requestedById], references: [id], onDelete: Restrict)
+
+  @@index([status, nextAttemptAt])
+  @@index([entitlementId, createdAt])
+  @@map("network_operations")
+}
+
+// ============================================================ Support, notifications
+
+model Notification {
+  id        String              @id @default(uuid()) @db.Uuid
+  userId    String?             @db.Uuid
+  /// Phone/email destination, minimized.
+  recipient String              @db.VarChar(254)
+  channel   NotificationChannel
+  template  String              @db.VarChar(60)
+  /// Template parameters WITHOUT secrets (voucher codes are never stored here).
+  params    Json
+  status    NotificationStatus  @default(QUEUED)
+  error     String?             @db.VarChar(200)
+  createdAt DateTime            @default(now()) @db.Timestamptz(3)
+  sentAt    DateTime?           @db.Timestamptz(3)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@map("notifications")
+}
+
+model SupportTicket {
+  id           String       @id @default(uuid()) @db.Uuid
+  propertyId   String       @db.Uuid
+  requesterId  String?      @db.Uuid
+  contactPhone String?      @db.VarChar(16)
+  /// PAYMENT, CONNECTIVITY, VOUCHER, ACCOUNT, OUTAGE, OTHER
+  category     String       @db.VarChar(24)
+  subject      String       @db.VarChar(160)
+  body         String       @db.VarChar(4000)
+  status       TicketStatus @default(OPEN)
+  assignedToId String?      @db.Uuid
+  orderId      String?      @db.Uuid
+  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
+
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  requester  User?    @relation("TicketRequester", fields: [requesterId], references: [id], onDelete: SetNull)
+  assignedTo User?    @relation("TicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([propertyId, status, createdAt])
+  @@map("support_tickets")
+}
+
+// ============================================================ Platform
+
+/// Append-only (UPDATE/DELETE blocked by trigger). Hash chain detects tampering.
+model AuditLog {
+  id            BigInt    @id @default(autoincrement())
+  occurredAt    DateTime  @default(now()) @db.Timestamptz(3)
+  actorType     ActorType
+  actorUserId   String?   @db.Uuid
+  propertyId    String?   @db.Uuid
+  action        String    @db.VarChar(80)
+  targetType    String    @db.VarChar(40)
+  targetId      String?   @db.VarChar(64)
+  correlationId String?   @db.VarChar(64)
+  ipAddress     String?   @db.Inet
+  reason        String?   @db.VarChar(500)
+  metadata      Json      @default("{}")
+  prevHash      String?   @db.Char(64)
+  hash          String    @db.Char(64)
+
+  actor    User?     @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  property Property? @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+
+  @@index([propertyId, occurredAt])
+  @@index([targetType, targetId])
+  @@index([actorUserId, occurredAt])
+  @@map("audit_logs")
+}
+
+model IdempotencyRecord {
+  /// e.g. "POST /api/v1/orders:<userId or guest session>"
+  scope          String   @db.VarChar(160)
+  key            String   @db.VarChar(100)
+  requestHash    String   @db.Char(64)
+  responseStatus Int?
+  responseBody   Json?
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt      DateTime @db.Timestamptz(3)
+
+  @@id([scope, key])
+  @@index([expiresAt])
+  @@map("idempotency_records")
+}
+
+/// Transactional outbox (ADR-0002).
+model OutboxEvent {
+  id            String    @id @default(uuid()) @db.Uuid
+  type          String    @db.VarChar(80)
+  aggregateType String    @db.VarChar(40)
+  aggregateId   String    @db.VarChar(64)
+  payload       Json
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  availableAt   DateTime  @default(now()) @db.Timestamptz(3)
+  dispatchedAt  DateTime? @db.Timestamptz(3)
+  attempts      Int       @default(0)
+  lastError     String?   @db.VarChar(300)
+
+  @@index([aggregateType, aggregateId])
+  @@map("outbox_events")
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid()) @db.Uuid
+  /// NULL = platform-wide.
+  propertyId  String?  @db.Uuid
+  key         String   @db.VarChar(80)
+  value       Json
+  updatedById String?  @db.Uuid
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  property  Property? @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  updatedBy User?     @relation(fields: [updatedById], references: [id], onDelete: Restrict)
+
+  @@map("system_settings")
+}
+
+model ReconciliationDiscrepancy {
+  id            String          @id @default(uuid()) @db.Uuid
+  kind          DiscrepancyKind
+  propertyId    String?         @db.Uuid
+  paymentId     String?         @db.Uuid
+  entitlementId String?         @db.Uuid
+  details       Json
+  detectedAt    DateTime        @default(now()) @db.Timestamptz(3)
+  resolvedAt    DateTime?       @db.Timestamptz(3)
+  resolvedById  String?         @db.Uuid
+  resolution    String?         @db.VarChar(500)
+
+  property    Property?    @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  payment     Payment?     @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  entitlement Entitlement? @relation(fields: [entitlementId], references: [id], onDelete: Restrict)
+  resolvedBy  User?        @relation(fields: [resolvedById], references: [id], onDelete: Restrict)
+
+  @@index([resolvedAt, detectedAt])
+  @@map("reconciliation_discrepancies")
+}

@@ -1,0 +1,53 @@
+{
+  "name": "netflex",
+  "private": true,
+  "version": "0.1.0",
+  "description": "NetFlex managed Wi-Fi billing and access-control platform",
+  "engines": {
+    "node": ">=22.12 <23"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "tsc -b tsconfig.json",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:all": "vitest run",
+    "db:generate": "npm run generate -w @netflex/database",
+    "db:migrate:dev": "npm run migrate:dev -w @netflex/database",
+    "db:migrate:deploy": "npm run migrate:deploy -w @netflex/database",
+    "db:migrate:status": "npm run migrate:status -w @netflex/database",
+    "services:start": "node scripts/dev-services.mjs start",
+    "services:stop": "node scripts/dev-services.mjs stop",
+    "check": "npm run lint && npm run typecheck && npm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^22.20.5",
+    "@vitest/coverage-v8": "^4.1.12",
+    "deepmerge-ts": "8.0.2",
+    "embedded-postgres": "^17.10.0-beta.17",
+    "eslint": "^9.39.5",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^4.1.12"
+  },
+  "overrides": {
+    "deepmerge-ts": "$deepmerge-ts"
+  },
+  "packageManager": "npm@11.21.1",
+  "allowScripts": {
+    "@embedded-postgres/darwin-x64@17.10.0-beta.17": true,
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "prisma@6.19.3": true
+  }
+}

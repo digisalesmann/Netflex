@@ -1,0 +1,14 @@
+{
+  "name": "@netflex/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  }
+}

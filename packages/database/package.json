@@ -1,0 +1,22 @@
+{
+  "name": "@netflex/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "prisma generate && tsc -b",
+    "generate": "prisma generate",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:status": "prisma migrate status"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "@netflex/domain": "0.1.0"
+  },
+  "devDependencies": {
+    "prisma": "6.19.3"
+  }
+}

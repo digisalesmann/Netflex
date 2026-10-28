@@ -1,0 +1,57 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_USER: netflex
+          POSTGRES_PASSWORD: netflex-dev-only
+          POSTGRES_DB: netflex_test
+        ports: ['54329:5432']
+        options: >-
+          --health-cmd "pg_isready -U netflex" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7.2.17
+        ports: ['63799:6379']
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NETFLEX_ENV: test
+      TEST_DATABASE_URL: postgresql://netflex:netflex-dev-only@localhost:54329/netflex_test
+      DATABASE_URL: postgresql://netflex:netflex-dev-only@localhost:54329/netflex_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm install -g npm@11.21.1
+      - run: npm ci
+      - run: npm run db:generate
+      - name: Lint
+        run: npm run lint
+      - name: Format
+        run: npm run format:check
+      - name: Type-check
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Migrations apply cleanly and match the schema (no drift)
+        run: |
+          npm run db:migrate:deploy
+          npx -w @netflex/database prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --exit-code
+      - name: Integration tests (real PostgreSQL)
+        run: npm run test:integration
+      - name: Dependency audit (high and above)
+        run: npm audit --audit-level=high --omit=dev
