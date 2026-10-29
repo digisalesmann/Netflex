@@ -224,20 +224,26 @@ enum DiscrepancyKind {
 // ============================================================ Identity
 
 model User {
-  id           String     @id @default(uuid()) @db.Uuid
-  kind         UserKind
-  status       UserStatus @default(ACTIVE)
-  displayName  String     @db.VarChar(120)
+  id                 String     @id @default(uuid()) @db.Uuid
+  kind               UserKind
+  status             UserStatus @default(ACTIVE)
+  displayName        String     @db.VarChar(120)
   /// E.164, e.g. +2348012345678
-  phoneE164    String?    @unique @db.VarChar(16)
-  email        String?    @unique @db.VarChar(254)
+  phoneE164          String?    @unique @db.VarChar(16)
+  email              String?    @unique @db.VarChar(254)
   /// Staff only. argon2id/scrypt hash, never plaintext.
-  passwordHash String?
+  passwordHash       String?
   /// Encrypted TOTP secret (staff MFA). Never returned by the API.
-  mfaSecretEnc String?
-  mfaEnabled   Boolean    @default(false)
-  createdAt    DateTime   @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
+  mfaSecretEnc       String?
+  mfaEnabled         Boolean    @default(false)
+  /// Last accepted TOTP time step; codes at or before it are rejected (replay protection).
+  mfaLastUsedStep    Int?
+  /// Set when an owner creates the account with an initial password.
+  mustChangePassword Boolean    @default(false)
+  passwordUpdatedAt  DateTime?  @db.Timestamptz(3)
+  lastLoginAt        DateTime?  @db.Timestamptz(3)
+  createdAt          DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime   @updatedAt @db.Timestamptz(3)
 
   roles                 UserRole[]                  @relation("UserRoles")
   rolesGranted          UserRole[]                  @relation("RoleGrantedBy")

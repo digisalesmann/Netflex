@@ -16,3 +16,4 @@ export const PG_ERROR = {
   INTEGRITY_CONSTRAINT_VIOLATION: '23000',
   SERIALIZATION_FAILURE: '40001',
 } as const;
+export { syncRbac } from './rbac-sync.js';

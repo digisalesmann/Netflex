@@ -10,6 +10,7 @@ const alias = {
   '@netflex/database': pkg('database'),
   '@netflex/observability': pkg('observability'),
   '@netflex/ui': pkg('ui'),
+  '@netflex/security': pkg('security'),
 };
 
 export default defineConfig({

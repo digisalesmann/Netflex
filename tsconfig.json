@@ -6,6 +6,7 @@
     { "path": "packages/database" },
     { "path": "packages/observability" },
     { "path": "packages/ui" },
+    { "path": "packages/security" },
     { "path": "apps/api" },
     { "path": "apps/worker" }
   ]

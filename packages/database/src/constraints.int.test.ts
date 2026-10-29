@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { Prisma, createPrismaClient, type PrismaClient } from './index.js';
 
 /**
@@ -11,6 +11,8 @@ let db: PrismaClient;
 
 const uniq = () => randomBytes(4).toString('hex');
 const hex64 = () => randomBytes(32).toString('hex');
+const phone = () =>
+  `+23480${String(randomBytes(4).readUInt32BE(0) % 100_000_000).padStart(8, '0')}`;
 
 async function expectDbError(p: Promise<unknown>, pattern: RegExp): Promise<void> {
   await expect(p).rejects.toThrow(pattern);
@@ -56,7 +58,9 @@ async function buildWorld(): Promise<World> {
   const staff2 = await db.user.create({
     data: { kind: 'STAFF', displayName: 'Finance', email: `f-${s}@test.invalid` },
   });
-  const tenant = await db.user.create({ data: { kind: 'TENANT', displayName: 'Tenant' } });
+  const tenant = await db.user.create({
+    data: { kind: 'TENANT', displayName: 'Tenant', phoneE164: phone() },
+  });
   const plan = await db.plan.create({
     data: { propertyId: property.id, slug: `day-${s}`, status: 'PUBLISHED' },
   });
@@ -115,7 +119,7 @@ function orderData(
 let w: World;
 
 beforeAll(async () => {
-  db = createPrismaClient(process.env.TEST_DATABASE_URL as string);
+  db = createPrismaClient(inject('testDatabaseUrl'));
   w = await buildWorld();
 });
 
@@ -501,7 +505,9 @@ describe('audit log', () => {
 
 describe('tenancy', () => {
   it('allows only one open room assignment per tenant per property', async () => {
-    const u = await db.user.create({ data: { kind: 'TENANT', displayName: `T-${randomUUID()}` } });
+    const u = await db.user.create({
+      data: { kind: 'TENANT', displayName: `T-${randomUUID()}`, phoneE164: phone() },
+    });
     const base = {
       propertyId: w.propertyId,
       userId: u.id,

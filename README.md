@@ -2,7 +2,7 @@
 
 Managed Wi-Fi billing and access-control platform for a residential property in Nigeria. Vouchers, time-based plans, individual/room/floor access, Paystack payments, and gateway enforcement.
 
-**Status:** Phase 1 (foundation) complete locally. Nothing is live. See [docs/status/capability-status.md](docs/status/capability-status.md) for what is verified and what is blocked.
+**Status:** Phase 2 (identity and property model) complete. Nothing is live. See [docs/status/capability-status.md](docs/status/capability-status.md) for what is verified and what is blocked.
 
 The product spec is [docs/spec/NetFlex_Final_Master_Prompt.pdf](docs/spec/NetFlex_Final_Master_Prompt.pdf). Start with [docs/discovery-report.md](docs/discovery-report.md).
 
@@ -19,7 +19,11 @@ cp .env.example .env              # then set VOUCHER_PEPPER and AUTH_SECRET to r
 npm run services:start            # separate terminal; Ctrl-C stops
 npm run db:generate
 npm run db:migrate:deploy
+npm run build
+npm run db:sync-rbac
 ```
+
+Create the first owner account: see [docs/runbooks/staff-accounts.md](docs/runbooks/staff-accounts.md).
 
 ## Checks
 
@@ -45,8 +49,9 @@ packages/config      environment validation (fails fast; refuses simulators in s
 packages/domain      framework-free business rules: money, time, vouchers, state machines, scope
 packages/database    Prisma schema, migrations, DB integrity tests
 packages/observability  JSON logging with secret redaction, request IDs
+packages/security    password hashing, TOTP, encryption, tokens
 packages/ui          design tokens (CSS variables), WCAG contrast checks
-apps/api             NestJS REST API (/api/v1), health checks, OpenAPI at /api/docs (non-production)
+apps/api             NestJS REST API (/api/v1): auth, RBAC, properties, tenancy, staff, audit; OpenAPI at /api/docs (non-production)
 apps/worker          outbox relay, BullMQ queues, heartbeat
 scripts/             local dev services, test setup
 infra/deployment/    docker-compose for development

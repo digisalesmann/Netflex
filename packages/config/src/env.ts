@@ -19,6 +19,15 @@ const baseSchema = z.object({
   REDIS_URL: z.string().url().startsWith('redis'),
 
   API_PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+  /**
+   * Express "trust proxy": which upstream proxies may set X-Forwarded-For. Needed
+   * for correct per-client rate limits behind a load balancer. 'false' (default)
+   * ignores the header; 'loopback', a hop count, or a comma-separated CIDR list.
+   */
+  TRUST_PROXY: z
+    .string()
+    .regex(/^(false|loopback|\d{1,2}|[0-9a-fA-F.:/,\s]+)$/)
+    .default('false'),
   PUBLIC_WEB_URL: z.string().url(),
   PUBLIC_API_URL: z.string().url(),
 

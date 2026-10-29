@@ -7,3 +7,4 @@ export * from './scope.js';
 export * from './plans.js';
 export * from './redemption.js';
 export * from './payment-matching.js';
+export * from './permissions.js';

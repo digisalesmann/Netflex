@@ -10,7 +10,8 @@
     "generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
-    "migrate:status": "prisma migrate status"
+    "migrate:status": "prisma migrate status",
+    "sync-rbac": "node --env-file-if-exists=../../.env dist/sync-rbac.cli.js"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",

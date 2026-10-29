@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { NetflexConfig } from '@netflex/config';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { Logger, PinoLogger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
@@ -21,9 +22,19 @@ export async function createApp(config: NetflexConfig): Promise<NestExpressAppli
   });
   app.useLogger(app.get(Logger));
   app.disable('x-powered-by');
+  const tp = config.TRUST_PROXY;
+  app.set(
+    'trust proxy',
+    tp === 'false' ? false : /^\d+$/.test(tp) ? Number(tp) : tp.split(',').map((x) => x.trim()),
+  );
   app.useBodyParser('json', { limit: '100kb' });
   app.use(helmet());
-  app.enableCors({ origin: [config.PUBLIC_WEB_URL], credentials: true });
+  app.use(cookieParser());
+  app.enableCors({
+    origin: [config.PUBLIC_WEB_URL],
+    credentials: true,
+    allowedHeaders: ['content-type', 'x-netflex-csrf', 'x-request-id', 'idempotency-key'],
+  });
   app.setGlobalPrefix(API_PREFIX);
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
   app.useGlobalInterceptors(new EnvelopeInterceptor());

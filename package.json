@@ -27,7 +27,8 @@
     "services:stop": "node scripts/dev-services.mjs stop",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
     "start:api": "node --env-file=.env apps/api/dist/main.js",
-    "start:worker": "node --env-file=.env apps/worker/dist/main.js"
+    "start:worker": "node --env-file=.env apps/worker/dist/main.js",
+    "db:sync-rbac": "npm run sync-rbac -w @netflex/database"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

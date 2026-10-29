@@ -3,6 +3,7 @@ import { ApiOkResponse, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/s
 import type { PrismaClient } from '@netflex/database';
 import type { Response } from 'express';
 import type { Redis } from 'ioredis';
+import { Public } from '../auth/decorators.js';
 import { PRISMA, REDIS } from '../infra/tokens.js';
 
 export const WORKER_HEARTBEAT_KEY = 'netflex:worker:heartbeat';
@@ -31,6 +32,7 @@ async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
  * because the API must keep accepting webhooks while the worker restarts.
  * Responses contain no hostnames, versions, or error text.
  */
+@Public()
 @ApiTags('health')
 @Controller({ path: 'health' })
 export class HealthController {
