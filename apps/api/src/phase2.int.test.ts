@@ -700,6 +700,16 @@ describe('privilege escalation', () => {
 
   it('the last active owner cannot have the owner role revoked', async () => {
     const me = (await agents.owner.get('/api/v1/me')).body.data;
+    // Other test files share this schema and may have created owners; make ours the only one.
+    await h.prisma.userRole.updateMany({
+      where: {
+        revokedAt: null,
+        propertyId: null,
+        role: { key: 'OWNER' },
+        userId: { not: me.user.id },
+      },
+      data: { revokedAt: new Date() },
+    });
     const grantId = (
       await h.prisma.userRole.findFirstOrThrow({ where: { userId: me.user.id, revokedAt: null } })
     ).id;

@@ -6,9 +6,12 @@ export const IS_PUBLIC = 'netflex:public';
 export const ALLOW_INCOMPLETE_LOGIN = 'netflex:allow-incomplete';
 export const REQUIRE_PERMISSION = 'netflex:permission';
 export const REQUIRE_KIND = 'netflex:kind';
+export const OPTIONAL_AUTH = 'netflex:optional-auth';
 
 /** No session needed (sign-in, health, public catalog). */
 export const Public = () => SetMetadata(IS_PUBLIC, true);
+/** On a public route: attach the session if a valid one is present, otherwise continue anonymously. */
+export const OptionalAuth = () => SetMetadata(OPTIONAL_AUTH, true);
 /** Reachable before MFA is complete or while a password change is pending. */
 export const AllowIncompleteLogin = () => SetMetadata(ALLOW_INCOMPLETE_LOGIN, true);
 /**

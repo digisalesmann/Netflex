@@ -108,6 +108,7 @@ function orderData(
     planVersionId: w.planVersionId,
     scope: 'INDIVIDUAL',
     targetUserId: w.tenantId,
+    customerUserId: w.tenantId,
     amountMinor: 50_000n,
     currency: 'NGN',
     planSnapshot: { test: true },
@@ -158,6 +159,26 @@ describe('orders and money', () => {
       }),
       /orders_scope_target/,
     );
+  });
+
+  it('requires a customer account or a guest phone + token', async () => {
+    await expectDbError(
+      db.order.create({ data: orderData(w, { customerUserId: null }) }),
+      /orders_guest_has_token/,
+    );
+    await expectDbError(
+      db.order.create({
+        data: orderData(w, { customerUserId: null, customerPhone: '+2348000000000' }),
+      }),
+      /orders_guest_has_token/,
+    );
+    await db.order.create({
+      data: orderData(w, {
+        customerUserId: null,
+        customerPhone: '+2348000000000',
+        accessTokenVerifier: hex64(),
+      }),
+    });
   });
 
   it('rejects zero or negative amounts and bad currency codes', async () => {

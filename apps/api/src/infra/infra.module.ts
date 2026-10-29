@@ -29,9 +29,11 @@ export class InfraModule implements OnApplicationShutdown {
           provide: REDIS,
           inject: [Logger],
           useFactory: (logger: Logger) => {
+            // Commands queue briefly while (re)connecting, but never wait more than 2s:
+            // callers such as the rate limiter then fail closed instead of hanging.
             const redis = new Redis(config.REDIS_URL, {
               maxRetriesPerRequest: 1,
-              enableOfflineQueue: false,
+              commandTimeout: 2_000,
               connectTimeout: 5_000,
             });
             // Without a listener ioredis would crash the process on connection errors.

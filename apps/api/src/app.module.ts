@@ -7,6 +7,14 @@ import { LoggerModule } from 'nestjs-pino';
 import { AuditController } from './audit/audit.controller.js';
 import { AuditService } from './audit/audit.service.js';
 import { AuthController } from './auth/auth.controller.js';
+import { CatalogController } from './catalog/catalog.controller.js';
+import { PlansController } from './catalog/plans.controller.js';
+import { IdempotencyService } from './common/idempotency.service.js';
+import { OrdersController } from './orders/orders.controller.js';
+import { OrdersService } from './orders/orders.service.js';
+import { AccessService } from './vouchers/access.service.js';
+import { RedemptionService } from './vouchers/redemption.service.js';
+import { VouchersController } from './vouchers/vouchers.controller.js';
 import { AuthService } from './auth/auth.service.js';
 import { AuthGuard, CsrfGuard } from './auth/guards.js';
 import { MeController } from './auth/me.controller.js';
@@ -62,6 +70,10 @@ export class AppModule {
         TenancyController,
         StaffController,
         AuditController,
+        PlansController,
+        CatalogController,
+        OrdersController,
+        VouchersController,
       ],
       providers: [
         AuditService,
@@ -69,6 +81,10 @@ export class AppModule {
         SessionService,
         AuthService,
         TenancyService,
+        IdempotencyService,
+        OrdersService,
+        AccessService,
+        RedemptionService,
         {
           provide: OTP_SENDER,
           useFactory: () =>

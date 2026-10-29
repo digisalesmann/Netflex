@@ -14,6 +14,7 @@ import type { AppRequest } from './auth.types.js';
 import {
   ALLOW_INCOMPLETE_LOGIN,
   IS_PUBLIC,
+  OPTIONAL_AUTH,
   REQUIRE_KIND,
   REQUIRE_PERMISSION,
 } from './decorators.js';
@@ -74,10 +75,18 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     const targets = [ctx.getHandler(), ctx.getClass()];
-    if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, targets)) return true;
-
     const req = ctx.switchToHttp().getRequest<AppRequest>();
     const cookies = (req.cookies ?? {}) as Record<string, string | undefined>;
+    if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, targets)) {
+      if (this.reflector.getAllAndOverride<boolean>(OPTIONAL_AUTH, targets)) {
+        const optional = await this.sessions.resolve(cookies[this.sessions.cookieName]);
+        // Incomplete staff logins are treated as anonymous.
+        if (optional && optional.mfaSatisfied && !optional.user.mustChangePassword)
+          req.auth = optional;
+      }
+      return true;
+    }
+
     const auth = await this.sessions.resolve(cookies[this.sessions.cookieName]);
     if (!auth)
       throw new ApiError(HttpStatus.UNAUTHORIZED, 'UNAUTHENTICATED', 'Please sign in to continue.');

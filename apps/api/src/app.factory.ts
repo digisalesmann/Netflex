@@ -22,6 +22,10 @@ export async function createApp(config: NetflexConfig): Promise<NestExpressAppli
   });
   app.useLogger(app.get(Logger));
   app.disable('x-powered-by');
+  // Money and audit ids are BigInt; serialize them as decimal strings, never as floats.
+  app.set('json replacer', (_key: string, value: unknown) =>
+    typeof value === 'bigint' ? value.toString() : value,
+  );
   const tp = config.TRUST_PROXY;
   app.set(
     'trust proxy',

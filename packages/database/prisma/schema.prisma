@@ -650,26 +650,30 @@ model PlanVersion {
 // ============================================================ Commerce
 
 model Order {
-  id             String      @id @default(uuid()) @db.Uuid
+  id                  String      @id @default(uuid()) @db.Uuid
   /// Human-friendly reference shown on receipts, e.g. NFX-7K3M-Q9TD
-  reference      String      @unique @db.VarChar(24)
-  propertyId     String      @db.Uuid
-  customerUserId String?     @db.Uuid
-  customerPhone  String?     @db.VarChar(16)
-  planVersionId  String      @db.Uuid
-  scope          AccessScope
-  targetUserId   String?     @db.Uuid
-  targetRoomId   String?     @db.Uuid
-  targetFloorId  String?     @db.Uuid
-  amountMinor    BigInt
-  currency       String      @db.Char(3)
+  reference           String      @unique @db.VarChar(24)
+  propertyId          String      @db.Uuid
+  customerUserId      String?     @db.Uuid
+  customerPhone       String?     @db.VarChar(16)
+  planVersionId       String      @db.Uuid
+  scope               AccessScope
+  targetUserId        String?     @db.Uuid
+  targetRoomId        String?     @db.Uuid
+  targetFloorId       String?     @db.Uuid
+  amountMinor         BigInt
+  currency            String      @db.Char(3)
   /// Full immutable copy of plan terms at purchase time.
-  planSnapshot   Json
-  status         OrderStatus @default(CREATED)
-  createdAt      DateTime    @default(now()) @db.Timestamptz(3)
-  updatedAt      DateTime    @updatedAt @db.Timestamptz(3)
-  expiresAt      DateTime    @db.Timestamptz(3)
-  paidAt         DateTime?   @db.Timestamptz(3)
+  planSnapshot        Json
+  /// HMAC of the guest's order-status token (guest checkout has no session).
+  accessTokenVerifier String?     @db.Char(64)
+  /// Idempotency key the order was created with, for support lookups.
+  idempotencyKey      String?     @db.VarChar(100)
+  status              OrderStatus @default(CREATED)
+  createdAt           DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime    @updatedAt @db.Timestamptz(3)
+  expiresAt           DateTime    @db.Timestamptz(3)
+  paidAt              DateTime?   @db.Timestamptz(3)
 
   property     Property      @relation(fields: [propertyId], references: [id], onDelete: Restrict)
   customer     User?         @relation("OrderCustomer", fields: [customerUserId], references: [id], onDelete: Restrict)
