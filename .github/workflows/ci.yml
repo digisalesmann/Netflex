@@ -56,5 +56,9 @@ jobs:
           npx -w @netflex/database prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --exit-code
       - name: Integration tests (real PostgreSQL)
         run: npm run test:integration
+      - name: Browser end-to-end tests (simulated payments, SMS and gateway)
+        run: |
+          npx playwright install --with-deps chromium
+          PW_CHANNEL=chromium npm run test:e2e
       - name: Dependency audit (high and above)
         run: npm audit --audit-level=high --omit=dev

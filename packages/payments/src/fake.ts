@@ -37,8 +37,11 @@ export class FakePaymentProvider implements PaymentProvider {
   private readonly failures = new Map<string, PaymentProviderError[]>();
   readonly calls: { method: string; arg: string }[] = [];
 
-  constructor(env: NetflexEnvironment) {
+  private readonly checkoutBaseUrl: string;
+
+  constructor(env: NetflexEnvironment, opts: { checkoutBaseUrl?: string } = {}) {
     assertSimulatorAllowed(env, 'FakePaymentProvider');
+    this.checkoutBaseUrl = opts.checkoutBaseUrl ?? 'https://checkout.fake.invalid/';
   }
 
   failNext(
@@ -70,7 +73,7 @@ export class FakePaymentProvider implements PaymentProvider {
       paidAt: null,
     });
     return Promise.resolve({
-      checkoutUrl: `https://checkout.fake.invalid/${i.reference}`,
+      checkoutUrl: `${this.checkoutBaseUrl}${encodeURIComponent(i.reference)}`,
       providerReference: i.reference,
     });
   }
@@ -88,6 +91,11 @@ export class FakePaymentProvider implements PaymentProvider {
       ...(outcome.currency ? { currency: outcome.currency } : {}),
     });
     if (tx.status === 'success') tx.paidAt = new Date();
+  }
+
+  /** Whether this simulator knows the reference (used by the development checkout page). */
+  has(reference: string): boolean {
+    return this.txs.has(reference);
   }
 
   verify(reference: string): Promise<VerifiedTransaction> {

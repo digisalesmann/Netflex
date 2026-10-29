@@ -6,7 +6,11 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { LoggerModule } from 'nestjs-pino';
 import { AdminAccessController, MyAccessController } from './access/access.controllers.js';
 import { LifecycleService } from './access/lifecycle.service.js';
+import { AccountController } from './account/account.controller.js';
 import { AuditController } from './audit/audit.controller.js';
+import { DevSimulatorController } from './dev/dev.controller.js';
+import { PortalController } from './portal/portal.controller.js';
+import { SupportController } from './support/support.controller.js';
 import { AuditService } from './audit/audit.service.js';
 import { AuthController } from './auth/auth.controller.js';
 import { CatalogController } from './catalog/catalog.controller.js';
@@ -95,6 +99,15 @@ export class AppModule {
         AdminAccessController,
         MyAccessController,
         NetworkController,
+        PortalController,
+        SupportController,
+        AccountController,
+        // Development/test simulators exist only when a test-only provider is active.
+        ...(config.PAYMENT_PROVIDER === 'fake' ||
+        config.OTP_PROVIDER === 'fake' ||
+        config.NETWORK_ADAPTER === 'fake'
+          ? [DevSimulatorController]
+          : []),
       ],
       providers: [
         AuditService,
@@ -123,7 +136,9 @@ export class AppModule {
           useFactory: (): PaymentProvider =>
             config.PAYMENT_PROVIDER === 'paystack'
               ? new PaystackProvider(config.PAYSTACK_SECRET_KEY as string, config.PAYSTACK_BASE_URL)
-              : new FakePaymentProvider(config.NETFLEX_ENV),
+              : new FakePaymentProvider(config.NETFLEX_ENV, {
+                  checkoutBaseUrl: `${config.PUBLIC_API_URL}/api/v1/dev/fake-checkout/`,
+                }),
         },
         {
           provide: PAYMENT_ENGINE,

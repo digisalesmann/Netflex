@@ -113,6 +113,14 @@ export interface NetworkAdapter {
     entitlementId: string,
   ): Promise<ObservedEntitlement | { unreachable: true; detail: string }>;
   listActiveSessions(): Promise<ObservedSession[] | { unreachable: true; detail: string }>;
+  /**
+   * Which device currently holds this client IP on the gateway's captive network?
+   * The captive portal uses it to confirm the device identity a browser claims;
+   * the browser's own claim is never trusted on its own.
+   */
+  lookupClient(
+    clientIp: string,
+  ): Promise<{ macAddress: string } | null | { unreachable: true; detail: string }>;
 }
 
 export const unsupported = (detail: string): OperationResult => ({

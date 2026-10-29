@@ -24,6 +24,8 @@ export class FakeNetworkAdapter implements NetworkAdapter {
   private readonly state = new Map<string, ObservedEntitlement>();
   private readonly sessions = new Map<string, ObservedSession>();
   private readonly faults: Fault[] = [];
+  /** Captive-network clients currently holding an IP (simulated DHCP/host table). */
+  private readonly hosts = new Map<string, string>();
   private down = false;
   readonly calls: { op: string; entitlementId: string }[] = [];
   capabilities: CapabilityReport;
@@ -61,6 +63,23 @@ export class FakeNetworkAdapter implements NetworkAdapter {
     this.sessions.set(id, s);
     return s;
   }
+  /** Simulate a device joining the Wi-Fi and receiving an IP address. */
+  joinClient(
+    macAddress: string,
+    ip = `10.20.${Math.floor(Math.random() * 200) + 1}.${Math.floor(Math.random() * 250) + 2}`,
+  ): { ip: string; macAddress: string } {
+    this.hosts.set(ip, macAddress);
+    return { ip, macAddress };
+  }
+
+  lookupClient(
+    clientIp: string,
+  ): Promise<{ macAddress: string } | null | { unreachable: true; detail: string }> {
+    if (this.down) return Promise.resolve({ unreachable: true, detail: 'unreachable (simulated)' });
+    const mac = this.hosts.get(clientIp);
+    return Promise.resolve(mac ? { macAddress: mac } : null);
+  }
+
   /** Simulate someone deleting config on the router by hand (drift). */
   tamper(entitlementId: string): void {
     this.state.delete(entitlementId);

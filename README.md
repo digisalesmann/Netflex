@@ -2,7 +2,7 @@
 
 Managed Wi-Fi billing and access-control platform for a residential property in Nigeria. Vouchers, time-based plans, individual/room/floor access, Paystack payments, and gateway enforcement.
 
-**Status:** Phases 0–5 done (access lifecycle complete). The live Paystack sandbox run is pending the owner's test key ([payments guide](docs/payments/payments-guide.md)). Phase 6: the network engine is built and tested against a simulated gateway; the real router adapter is blocked on hardware ([network-engine.md](docs/network/network-engine.md)). Nothing is live. See [docs/status/capability-status.md](docs/status/capability-status.md) for what is verified and what is blocked.
+**Status:** Phases 0–7 done (Phase 6 real gateway blocked on hardware). Paystack test-mode payment verified live. The public site, Wi-Fi sign-in page and tenant portal are built and browser-tested. Nothing is live; paid access stays off until the Starlink and legal gates pass. See [docs/status/capability-status.md](docs/status/capability-status.md).
 
 The product spec is [docs/spec/NetFlex_Final_Master_Prompt.pdf](docs/spec/NetFlex_Final_Master_Prompt.pdf). Start with [docs/discovery-report.md](docs/discovery-report.md).
 
@@ -33,6 +33,7 @@ npm run typecheck
 npm test                          # unit tests
 npm run test:integration          # needs services running; uses database netflex_test
 npm run build
+npm run test:e2e                  # browser tests (needs Google Chrome locally; simulated providers)
 ```
 
 ## Run
@@ -40,7 +41,10 @@ npm run build
 ```sh
 npm run start:api                 # http://localhost:4000/api/v1/health/ready
 npm run start:worker
+npm run start:web                 # http://localhost:3000
 ```
+
+To click through the whole journey locally with simulators: set `PAYMENT_PROVIDER=fake`, `OTP_PROVIDER=fake`, `NETWORK_ADAPTER=fake`, `PAID_ACCESS_ENABLED=true` and `TRUST_PROXY=loopback` in `.env`, register a `FAKE` gateway, then open `http://localhost:3000/api/v1/dev/fake-gateway/join`.
 
 ## Layout
 
@@ -55,6 +59,7 @@ packages/core        shared business logic (audit, access, payment engine) for A
 packages/security    password hashing, TOTP, encryption, tokens
 packages/ui          design tokens (CSS variables), WCAG contrast checks
 apps/api             NestJS REST API (/api/v1): auth, RBAC, properties, tenancy, staff, audit, plans, catalog, orders, vouchers, payments, access lifecycle; OpenAPI at /api/docs (non-production)
+apps/web             Next.js: public site, Wi-Fi sign-in page (/connect), checkout return, tenant portal (/account)
 apps/worker          outbox relay, payment/refund/network jobs, reconciliation (5 min), expiry (1 min), heartbeat
 scripts/             local dev services, test setup
 infra/deployment/    docker-compose for development

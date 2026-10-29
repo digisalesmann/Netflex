@@ -11,8 +11,8 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "npm run db:generate && tsc -b tsconfig.json && node packages/ui/scripts/build-css.mjs",
-    "typecheck": "tsc -b tsconfig.json && tsc -p tsconfig.tests.json",
+    "build": "npm run db:generate && tsc -b tsconfig.json && node packages/ui/scripts/build-css.mjs && npm run build -w @netflex/web",
+    "typecheck": "tsc -b tsconfig.json && tsc -p tsconfig.tests.json && tsc -p apps/web/tsconfig.json --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -28,10 +28,15 @@
     "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
     "start:api": "node --env-file=.env apps/api/dist/main.js",
     "start:worker": "node --env-file=.env apps/worker/dist/main.js",
-    "db:sync-rbac": "npm run sync-rbac -w @netflex/database"
+    "db:sync-rbac": "npm run sync-rbac -w @netflex/database",
+    "start:web": "npm run start -w @netflex/web",
+    "dev:web": "npm run dev -w @netflex/web",
+    "test:e2e": "node scripts/e2e/prepare.mjs && NETFLEX_PROPERTY_SLUG=e2e-lodge playwright test"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@eslint/js": "^9.39.5",
+    "@playwright/test": "1.64.1",
     "@types/node": "^22.20.5",
     "@vitest/coverage-v8": "^4.1.12",
     "deepmerge-ts": "8.0.2",
@@ -50,6 +55,9 @@
     },
     "@nestjs/swagger": {
       "js-yaml": "5.5.0"
+    },
+    "next": {
+      "postcss": "8.5.32"
     }
   },
   "packageManager": "npm@11.21.1",

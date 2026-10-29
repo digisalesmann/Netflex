@@ -102,3 +102,17 @@ describe('FakeNetworkAdapter', () => {
     expect(await g.listActiveSessions()).toEqual([]);
   });
 });
+
+describe('client lookup (captive portal identity)', () => {
+  it('confirms which device holds an IP; unknown IPs and outages are explicit', async () => {
+    const g = new FakeNetworkAdapter('test');
+    const c = g.joinClient('aa:bb:cc:00:00:09', '10.20.1.5');
+    expect(await g.lookupClient(c.ip)).toEqual({ macAddress: 'aa:bb:cc:00:00:09' });
+    expect(await g.lookupClient('10.20.9.9')).toBeNull();
+    g.setDown(true);
+    expect(await g.lookupClient(c.ip)).toEqual({
+      unreachable: true,
+      detail: 'unreachable (simulated)',
+    });
+  });
+});

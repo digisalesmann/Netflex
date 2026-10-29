@@ -22,3 +22,15 @@ Validated at startup by `packages/config` (zod). Missing or invalid values stop 
 | `PAID_ACCESS_ENABLED`    | no          | `false` (default)                              | Keep `false` until legal gates pass                                                               |
 
 Generate a secret: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`.
+
+## Web app (`apps/web`)
+
+| Variable                   | Required | Example                            | Notes                                                                        |
+| -------------------------- | -------- | ---------------------------------- | ---------------------------------------------------------------------------- |
+| `API_INTERNAL_URL`         | yes      | `http://api.internal:4000`         | Read at **runtime** by the `/api` proxy route, so one build works everywhere |
+| `NETFLEX_PROPERTY_SLUG`    | yes      | `harbour-view`                     | Property shown on the public site                                            |
+| `NETFLEX_COVERAGE_NOTES`   | no       | `Strongest near the main corridor` | Owner-confirmed only; when empty, pages tell people to ask the office        |
+| `NETFLEX_LEGAL_REVIEWED`   | no       | `false`                            | While `false`, the policy pages show "Draft pending legal review"            |
+| `NETFLEX_POLICIES_UPDATED` | no       | `1 December 2026`                  | Shown on the policy pages                                                    |
+
+**Deployment requirement:** the browser reaches the API through the web server's `/api` proxy, which forwards the client address in `X-Forwarded-For`. The load balancer must set that header, and the API's `TRUST_PROXY` must trust the web server and load balancer. Otherwise every visitor shares one rate-limit bucket and sign-in and voucher entry are throttled for everyone.

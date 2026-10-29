@@ -308,6 +308,7 @@ export class LifecycleService {
         property: { select: { name: true, timeZone: true } },
         subscription: {
           include: {
+            planVersion: { select: { planId: true } },
             memberships: {
               where: { removedAt: null },
               include: { user: { select: { id: true, displayName: true, phoneE164: true } } },
@@ -350,10 +351,12 @@ export class LifecycleService {
       const seesAll = role !== 'MEMBER';
       return {
         entitlementId: e.id,
+        planId: e.subscription.planVersion.planId,
         property: e.property.name,
         planName: plan.name,
         scope: e.scope,
         role,
+        myMembershipId: me?.id ?? null,
         state: accessState(e.status, e.observedNetworkState, remaining),
         startsAt: e.startsAt?.toISOString() ?? null,
         expiresAt: e.expiresAt?.toISOString() ?? null,

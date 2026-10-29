@@ -242,6 +242,8 @@ model User {
   mustChangePassword Boolean    @default(false)
   passwordUpdatedAt  DateTime?  @db.Timestamptz(3)
   lastLoginAt        DateTime?  @db.Timestamptz(3)
+  /// Tenant notification choices (channels are inert until a provider is configured).
+  notificationPrefs  Json       @default("{}")
   createdAt          DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime   @updatedAt @db.Timestamptz(3)
 

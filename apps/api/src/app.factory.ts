@@ -32,6 +32,9 @@ export async function createApp(config: NetflexConfig): Promise<NestExpressAppli
     tp === 'false' ? false : /^\d+$/.test(tp) ? Number(tp) : tp.split(',').map((x) => x.trim()),
   );
   app.useBodyParser('json', { limit: '100kb' });
+  // Only the development checkout simulator posts a plain HTML form.
+  if (config.PAYMENT_PROVIDER === 'fake')
+    app.useBodyParser('urlencoded', { extended: false, limit: '4kb' });
   app.use(helmet());
   app.use(cookieParser());
   app.enableCors({

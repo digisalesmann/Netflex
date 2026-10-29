@@ -46,10 +46,33 @@ export class MeController {
         mustChangePassword: true,
       },
     });
+    // Tenants: where they currently live (for room/floor purchases and display).
+    const residence =
+      u.kind === 'TENANT'
+        ? await this.prisma.tenantAssignment.findMany({
+            where: { userId: u.id, endsAt: null },
+            select: {
+              startsAt: true,
+              property: { select: { id: true, name: true, slug: true } },
+              room: {
+                select: { id: true, label: true, floor: { select: { id: true, label: true } } },
+              },
+            },
+          })
+        : [];
+    const authorities =
+      u.kind === 'TENANT'
+        ? await this.prisma.groupAuthority.findMany({
+            where: { userId: u.id, revokedAt: null },
+            select: { scope: true, roomId: true, floorId: true, propertyId: true },
+          })
+        : [];
     return {
       user: u,
       grants: auth.actor.grants,
       session: { id: auth.sessionId, mfaSatisfied: auth.mfaSatisfied },
+      residence,
+      purchaseAuthority: authorities,
     };
   }
 
