@@ -1,4 +1,5 @@
-import type { PaymentEngine } from '@netflex/core';
+import { expireDue, type PaymentEngine } from '@netflex/core';
+import type { PrismaClient } from '@netflex/database';
 import type { Logger } from '@netflex/observability';
 
 export interface JobLike {
@@ -13,7 +14,7 @@ export interface JobLike {
  * outbox re-relays are safe. Unknown job names fail loudly (kept for inspection)
  * instead of being silently dropped.
  */
-export function createPaymentProcessor(engine: PaymentEngine, log: Logger) {
+export function createPaymentProcessor(engine: PaymentEngine, log: Logger, prisma?: PrismaClient) {
   return async (job: JobLike): Promise<unknown> => {
     const payload = job.data.payload ?? {};
     const str = (k: string) => {
@@ -42,6 +43,13 @@ export function createPaymentProcessor(engine: PaymentEngine, log: Logger) {
       case 'reconcile.payments': {
         const r = await engine.reconcile();
         log.info({ job: job.name, ...r }, 'payment reconciliation run');
+        return r;
+      }
+      case 'entitlements.expire': {
+        if (!prisma) throw new Error('entitlements.expire needs a database client');
+        const r = await expireDue(prisma);
+        if (r.expired || r.deadlinesMissed)
+          log.info({ job: job.name, ...r }, 'entitlements expired');
         return r;
       }
       default:

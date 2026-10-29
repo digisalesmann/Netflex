@@ -1,5 +1,6 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import type { Prisma, PrismaClient } from '@netflex/database';
+import { removeMember } from '@netflex/core';
 import { AuditService, type Tx } from '../audit/audit.service.js';
 import type { AuthContext } from '../auth/auth.types.js';
 import type { RequestMetaValue } from '../auth/decorators.js';
@@ -256,6 +257,37 @@ export class TenancyService {
         reason: `automatic: ${why}`,
         metadata: { userId },
       });
+    }
+
+    // Shared room/floor access follows residence too: leaving the room/floor ends
+    // membership and disconnects the person's devices (spec §7 tenant moves/departure).
+    const memberships = await tx.groupMembership.findMany({
+      where: {
+        userId,
+        removedAt: null,
+        subscription: {
+          propertyId: c.propertyId,
+          scope: { not: 'INDIVIDUAL' },
+          entitlement: { status: { notIn: ['EXPIRED', 'REVOKED'] } },
+        },
+      },
+      include: {
+        subscription: { select: { scope: true, targetRoomId: true, targetFloorId: true } },
+      },
+    });
+    for (const m of memberships) {
+      const s = m.subscription;
+      const keep =
+        newRoom !== null &&
+        ((s.scope === 'ROOM' && s.targetRoomId === newRoom.id) ||
+          (s.scope === 'FLOOR' && s.targetFloorId === newRoom.floorId));
+      if (keep) continue;
+      await removeMember(
+        tx,
+        m.id,
+        { type: 'USER', userId: c.auth.user.id, correlationId: c.meta.requestId, ip: c.meta.ip },
+        `automatic: ${why}`,
+      );
     }
   }
 

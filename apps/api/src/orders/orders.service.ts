@@ -10,6 +10,8 @@ import {
   generateOrderReference,
   snapshotToJson,
   type ScopeTarget,
+  type PlanVersionSnapshot,
+  computeRenewalWindow,
 } from '@netflex/domain';
 import { deriveKey, keyedVerifier } from '@netflex/security';
 import { AuditService, type Tx } from '../audit/audit.service.js';
@@ -33,6 +35,8 @@ export interface CreateOrderInput {
   planVersionId: string;
   target: OrderTargetInput;
   customerPhone?: string;
+  /** Explicit renewal of existing access (signed-in owner/manager only). */
+  renewEntitlementId?: string;
 }
 
 const unprocessable = (code: string, message: string) =>
@@ -203,6 +207,19 @@ export class OrdersService {
         );
     }
 
+    if (input.renewEntitlementId) {
+      await this.assertRenewable(
+        tx,
+        auth,
+        input.renewEntitlementId,
+        plan.id,
+        plan.propertyId,
+        target,
+        snapshot,
+        plan.property.timeZone,
+      );
+    }
+
     // Lock the version: from now on its terms can never change (DB trigger enforces).
     if (!version.lockedAt)
       await tx.planVersion.updateMany({
@@ -232,6 +249,7 @@ export class OrdersService {
             }) as unknown as Prisma.InputJsonValue,
             expiresAt: new Date(now.getTime() + ORDER_TTL_MS),
             idempotencyKey: idemKey,
+            renewsEntitlementId: input.renewEntitlementId ?? null,
             // Placeholder satisfies the guest CHECK; replaced below once the id is known.
             accessTokenVerifier: auth ? null : '0'.repeat(64),
           },
@@ -268,6 +286,88 @@ export class OrdersService {
       },
     });
     return this.view(order, version.name, !auth);
+  }
+
+  /**
+   * Renewal is explicit and checked up front (spec §9): the caller must own or
+   * manage the access, it must be the same plan and target, the access must have
+   * started and not ended, and the plan's renewal rule must not shorten it.
+   */
+  private async assertRenewable(
+    tx: Tx,
+    auth: AuthContext | undefined,
+    entitlementId: string,
+    planId: string,
+    propertyId: string,
+    target: ScopeTarget,
+    snapshot: PlanVersionSnapshot,
+    timeZone: string,
+  ) {
+    if (!auth)
+      throw new ApiError(
+        HttpStatus.UNAUTHORIZED,
+        'UNAUTHENTICATED',
+        'Sign in to renew your access.',
+      );
+    const e = await tx.entitlement.findFirst({
+      where: { id: entitlementId, propertyId },
+      include: {
+        subscription: {
+          include: {
+            planVersion: { select: { planId: true } },
+            memberships: { where: { userId: auth.user.id, removedAt: null, role: 'MANAGER' } },
+          },
+        },
+      },
+    });
+    const owns =
+      !!e &&
+      (e.subscription.ownerUserId === auth.user.id ||
+        e.targetUserId === auth.user.id ||
+        e.subscription.memberships.length > 0);
+    if (!e || !owns) throw notFound();
+    if (e.subscription.planVersion.planId !== planId) {
+      throw unprocessable(
+        'RENEWAL_PLAN_MISMATCH',
+        'Renewals must use the same plan. Buy the new plan separately instead.',
+      );
+    }
+    const sameTarget =
+      (target.scope === 'INDIVIDUAL' && e.scope === 'INDIVIDUAL') ||
+      (target.scope === 'ROOM' && e.targetRoomId === target.roomId) ||
+      (target.scope === 'FLOOR' && e.targetFloorId === target.floorId);
+    if (!sameTarget)
+      throw unprocessable(
+        'RENEWAL_TARGET_MISMATCH',
+        'A renewal must be for the same room, floor or person.',
+      );
+    if (['EXPIRED', 'REVOKED'].includes(e.status) || (e.expiresAt && e.expiresAt <= new Date())) {
+      throw new ApiError(
+        HttpStatus.CONFLICT,
+        'CONFLICT',
+        'This access has ended. Buy a new plan instead of renewing.',
+      );
+    }
+    if (!e.expiresAt) {
+      throw new ApiError(
+        HttpStatus.CONFLICT,
+        'CONFLICT',
+        'This access has not started yet. You can renew once it is active.',
+      );
+    }
+    const w = computeRenewalWindow({
+      now: new Date(),
+      currentExpiresAt: e.expiresAt,
+      duration: snapshot.duration,
+      timeZone,
+      rule: snapshot.renewalRule,
+    });
+    if (w.shortensCurrent) {
+      throw unprocessable(
+        'RENEWAL_WOULD_SHORTEN',
+        "This plan's renewal rule would end your current access early, so it can't be used to renew now.",
+      );
+    }
   }
 
   view(

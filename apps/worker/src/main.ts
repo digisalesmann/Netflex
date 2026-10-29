@@ -15,6 +15,8 @@ const BATCH = 50;
 const IDLE_MS = 1_000;
 const HEARTBEAT_MS = 10_000;
 const RECONCILE_EVERY_MS = 5 * 60_000;
+/** Expiry runs every minute; the gateway also enforces its own timeout (second layer, Phase 6). */
+const EXPIRE_EVERY_MS = 60_000;
 
 async function main(): Promise<void> {
   let config;
@@ -46,7 +48,7 @@ async function main(): Promise<void> {
     voucher: { pepper: config.VOUCHER_PEPPER, pepperVersion: config.VOUCHER_PEPPER_VERSION },
     deliveryKey: deriveDeliveryKey(config.VOUCHER_PEPPER),
   });
-  const process_ = createPaymentProcessor(engine, log);
+  const process_ = createPaymentProcessor(engine, log, prisma);
   const workers = [
     new Worker('payments', process_, { connection: redis, prefix: 'netflex', concurrency: 4 }),
     new Worker('reconciliation', process_, {
@@ -54,6 +56,7 @@ async function main(): Promise<void> {
       prefix: 'netflex',
       concurrency: 1,
     }),
+    new Worker('maintenance', process_, { connection: redis, prefix: 'netflex', concurrency: 1 }),
   ];
   for (const w of workers) {
     w.on('failed', (job, err) =>
@@ -69,6 +72,13 @@ async function main(): Promise<void> {
       ),
     );
   }
+  await sink.queues
+    .get('maintenance')
+    ?.upsertJobScheduler(
+      'expire-entitlements',
+      { every: EXPIRE_EVERY_MS },
+      { name: 'entitlements.expire', data: {} },
+    );
   await sink.queues
     .get('reconciliation')
     ?.upsertJobScheduler(

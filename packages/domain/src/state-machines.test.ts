@@ -65,6 +65,10 @@ describe('entitlement state machine', () => {
     expect(entitlementStateMachine.canTransition('PENDING_ACTIVATION', 'ACTIVE')).toBe(false);
     expect(entitlementStateMachine.canTransition('PROVISIONING', 'ACTIVE')).toBe(true);
   });
+  it('can suspend access that is still being provisioned', () => {
+    expect(entitlementStateMachine.canTransition('PROVISIONING', 'SUSPENDED')).toBe(true);
+    expect(entitlementStateMachine.canTransition('PROVISIONING_FAILED', 'SUSPENDED')).toBe(true);
+  });
   it('allows retry after provisioning failure', () => {
     expect(entitlementStateMachine.canTransition('PROVISIONING_FAILED', 'PROVISIONING')).toBe(true);
   });

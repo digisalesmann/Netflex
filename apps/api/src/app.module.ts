@@ -4,6 +4,8 @@ import type { NetflexConfig } from '@netflex/config';
 import { CORRELATION_HEADER, loggerOptions, resolveCorrelationId } from '@netflex/observability';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { LoggerModule } from 'nestjs-pino';
+import { AdminAccessController, MyAccessController } from './access/access.controllers.js';
+import { LifecycleService } from './access/lifecycle.service.js';
 import { AuditController } from './audit/audit.controller.js';
 import { AuditService } from './audit/audit.service.js';
 import { AuthController } from './auth/auth.controller.js';
@@ -83,6 +85,8 @@ export class AppModule {
         VouchersController,
         WebhooksController,
         AdminPaymentsController,
+        AdminAccessController,
+        MyAccessController,
       ],
       providers: [
         AuditService,
@@ -95,6 +99,7 @@ export class AppModule {
         AccessService,
         RedemptionService,
         PaymentsService,
+        LifecycleService,
         {
           provide: PAYMENT_PROVIDER,
           useFactory: (): PaymentProvider =>

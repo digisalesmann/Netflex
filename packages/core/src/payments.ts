@@ -10,6 +10,8 @@ import {
   type OrderStatus,
   type PaymentStatus,
   type PlanSnapshotJson,
+  type PlanVersionSnapshot,
+  computeRenewalWindow,
 } from '@netflex/domain';
 import {
   PaymentProviderError,
@@ -18,6 +20,7 @@ import {
 } from '@netflex/payments';
 import { deriveKey, encryptSecret } from '@netflex/security';
 import { grantAccess, type VoucherKeys } from './access.js';
+import { lockEntitlement, queueNetwork } from './entitlements.js';
 import { recordAudit, type Tx } from './audit.js';
 
 export interface PaymentEngineKeys {
@@ -243,6 +246,85 @@ export class PaymentEngine {
     });
   }
 
+  /**
+   * Explicit renewal (spec §9): extend the existing entitlement by the plan's
+   * renewal rule, never shortening it. Same voucher and devices keep working.
+   * Returns false if the entitlement ended meanwhile; the caller then issues
+   * fresh access so the customer still receives what they paid for.
+   */
+  private async renew(
+    tx: Tx,
+    order: {
+      id: string;
+      propertyId: string;
+      renewsEntitlementId: string | null;
+      customerUserId: string | null;
+      planVersionId: string;
+      planSnapshot: unknown;
+      property: { timeZone: string };
+    },
+    plan: PlanVersionSnapshot,
+  ): Promise<boolean> {
+    const e = await lockEntitlement(tx, order.renewsEntitlementId as string, order.propertyId);
+    const renewable =
+      e &&
+      e.expiresAt &&
+      ['ACTIVE', 'SUSPENDED', 'PROVISIONING', 'PROVISIONING_FAILED'].includes(e.status) &&
+      e.expiresAt > new Date();
+    if (!e || !renewable || !e.expiresAt) {
+      await this.audit(tx, order.propertyId, 'order.renewal_fell_back', order.id, {
+        entitlementId: order.renewsEntitlementId,
+        status: e?.status ?? null,
+      });
+      return false;
+    }
+    const w = computeRenewalWindow({
+      now: new Date(),
+      currentExpiresAt: e.expiresAt,
+      duration: plan.duration,
+      timeZone: order.property.timeZone,
+      rule: plan.renewalRule,
+    });
+    const newExpiry = w.expiresAt > e.expiresAt ? w.expiresAt : e.expiresAt;
+    // Linear renewal chain: attach to the latest subscription for this entitlement.
+    let tail = e.subscriptionId;
+    for (;;) {
+      const next = await tx.subscription.findUnique({
+        where: { renewsId: tail },
+        select: { id: true },
+      });
+      if (!next) break;
+      tail = next.id;
+    }
+    const sub = await tx.subscription.create({
+      data: {
+        propertyId: order.propertyId,
+        orderId: order.id,
+        planVersionId: order.planVersionId,
+        planSnapshot: order.planSnapshot as Prisma.InputJsonValue,
+        scope: plan.scope,
+        ownerUserId: order.customerUserId,
+        targetUserId: e.targetUserId,
+        targetRoomId: e.targetRoomId,
+        targetFloorId: e.targetFloorId,
+        activationPolicy: plan.activationPolicy,
+        status: 'ACTIVE',
+        renewsId: tail,
+      },
+    });
+    await tx.entitlement.update({ where: { id: e.id }, data: { expiresAt: newExpiry } });
+    if (e.desiredNetworkState === 'ACTIVE')
+      await queueNetwork(tx, 'network.apply_policy', e.id, { reason: 'renewed' });
+    await this.audit(tx, order.propertyId, 'order.renewed', order.id, {
+      entitlementId: e.id,
+      subscriptionId: sub.id,
+      rule: plan.renewalRule,
+      from: e.expiresAt.toISOString(),
+      to: newExpiry.toISOString(),
+    });
+    return true;
+  }
+
   /** Issue the paid access (subscription + entitlement + voucher) for a PAID order. Exactly once per order. */
   private async fulfil(tx: Tx, orderId: string): Promise<void> {
     const order = await tx.order.findUniqueOrThrow({
@@ -251,6 +333,7 @@ export class PaymentEngine {
     });
     if (await tx.subscription.findUnique({ where: { orderId } })) return;
     const plan = snapshotFromJson(order.planSnapshot as unknown as PlanSnapshotJson);
+    if (order.renewsEntitlementId && (await this.renew(tx, order, plan))) return;
     const target =
       order.scope === 'ROOM'
         ? { scope: 'ROOM' as const, roomId: order.targetRoomId as string }

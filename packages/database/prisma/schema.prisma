@@ -669,6 +669,8 @@ model Order {
   accessTokenVerifier String?     @db.Char(64)
   /// Idempotency key the order was created with, for support lookups.
   idempotencyKey      String?     @db.VarChar(100)
+  /// Explicit renewal: extend this existing entitlement instead of issuing new access.
+  renewsEntitlementId String?     @db.Uuid
   status              OrderStatus @default(CREATED)
   createdAt           DateTime    @default(now()) @db.Timestamptz(3)
   updatedAt           DateTime    @updatedAt @db.Timestamptz(3)
@@ -681,6 +683,7 @@ model Order {
   targetUser   User?             @relation("OrderTargetUser", fields: [targetUserId], references: [id], onDelete: Restrict)
   targetRoom   Room?             @relation(fields: [targetRoomId], references: [id], onDelete: Restrict)
   targetFloor  Floor?            @relation(fields: [targetFloorId], references: [id], onDelete: Restrict)
+  renews       Entitlement?      @relation("OrderRenews", fields: [renewsEntitlementId], references: [id], onDelete: Restrict)
   payments     Payment[]
   subscription Subscription?
   vouchers     Voucher[]
@@ -834,6 +837,7 @@ model Entitlement {
   sessions      NetworkSession[]
   operations    NetworkOperation[]
   discrepancies ReconciliationDiscrepancy[]
+  renewalOrders Order[]                     @relation("OrderRenews")
 
   @@index([status, expiresAt])
   @@index([propertyId, status])

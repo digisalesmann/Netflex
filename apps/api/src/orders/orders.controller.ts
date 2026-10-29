@@ -33,6 +33,7 @@ const CreateOrder = z.strictObject({
     z.strictObject({ scope: z.literal('FLOOR'), floorId: uuid }),
   ]),
   customerPhone: phoneE164.optional(),
+  renewEntitlementId: uuid.optional(),
 });
 
 /**

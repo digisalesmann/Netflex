@@ -134,8 +134,9 @@ export const entitlementStateMachine = defineStateMachine<EntitlementStatus>(
   ENTITLEMENT_STATUSES,
   {
     PENDING_ACTIVATION: ['PROVISIONING', 'EXPIRED', 'REVOKED', 'SUSPENDED'],
-    PROVISIONING: ['ACTIVE', 'PROVISIONING_FAILED', 'REVOKED', 'EXPIRED'],
-    PROVISIONING_FAILED: ['PROVISIONING', 'REVOKED', 'EXPIRED'],
+    // Staff may suspend access that is still being set up (e.g. abuse before the gateway confirms).
+    PROVISIONING: ['ACTIVE', 'PROVISIONING_FAILED', 'SUSPENDED', 'REVOKED', 'EXPIRED'],
+    PROVISIONING_FAILED: ['PROVISIONING', 'SUSPENDED', 'REVOKED', 'EXPIRED'],
     ACTIVE: ['SUSPENDED', 'EXPIRED', 'REVOKED', 'PROVISIONING'],
     SUSPENDED: ['PROVISIONING', 'EXPIRED', 'REVOKED'],
     EXPIRED: [],

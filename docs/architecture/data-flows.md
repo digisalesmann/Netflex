@@ -127,6 +127,8 @@ stateDiagram-v2
   PENDING_ACTIVATION --> PROVISIONING: first redemption (starts clock if policy = FIRST_AUTHORIZATION on success)
   PROVISIONING --> ACTIVE: gateway confirms
   PROVISIONING --> PROVISIONING_FAILED: retries exhausted
+  PROVISIONING --> SUSPENDED: staff (e.g. abuse before gateway confirms)
+  PROVISIONING_FAILED --> SUSPENDED
   PROVISIONING_FAILED --> PROVISIONING: operator/automatic retry
   ACTIVE --> SUSPENDED
   SUSPENDED --> PROVISIONING: reactivate
