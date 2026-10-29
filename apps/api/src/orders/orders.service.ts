@@ -302,11 +302,12 @@ export class OrdersService {
   }
 
   /** Owner (tenant session) or guest with the order token. Anything else is "not found". */
-  async read(orderId: string, auth: AuthContext | undefined, guestToken: string | undefined) {
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-      include: { planVersion: { select: { name: true } } },
-    });
+  async loadAccessible(
+    orderId: string,
+    auth: AuthContext | undefined,
+    guestToken: string | undefined,
+  ) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw notFound();
     const ownerOk = auth?.user.kind === 'TENANT' && order.customerUserId === auth.user.id;
     const guestOk =
@@ -315,6 +316,45 @@ export class OrdersService {
       order.accessTokenVerifier !== null &&
       keyedVerifier(this.verifierKey, guestToken) === order.accessTokenVerifier;
     if (!ownerOk && !guestOk) throw notFound();
-    return this.view(order, order.planVersion.name, order.customerUserId === null);
+    return order;
+  }
+
+  /**
+   * Customer-facing order status (spec §16 truthful statuses). Network access
+   * state is reported separately once the gateway integration exists.
+   */
+  async read(orderId: string, auth: AuthContext | undefined, guestToken: string | undefined) {
+    const order = await this.loadAccessible(orderId, auth, guestToken);
+    const [version, latest, delivery] = await Promise.all([
+      this.prisma.planVersion.findUniqueOrThrow({
+        where: { id: order.planVersionId },
+        select: { name: true },
+      }),
+      this.prisma.payment.findFirst({
+        where: { orderId },
+        orderBy: { createdAt: 'desc' },
+        select: { status: true, createdAt: true },
+      }),
+      this.prisma.voucherDelivery.findFirst({
+        where: { orderId, expiresAt: { gt: new Date() }, voucher: { status: 'ISSUED' } },
+        select: { voucherId: true },
+      }),
+    ]);
+    const stage =
+      order.status === 'PAID'
+        ? delivery
+          ? 'VOUCHER_AVAILABLE'
+          : 'PAYMENT_CONFIRMED'
+        : order.status === 'AWAITING_PAYMENT'
+          ? latest?.status === 'FAILED' || latest?.status === 'ABANDONED'
+            ? 'PAYMENT_FAILED'
+            : 'PAYMENT_PENDING'
+          : order.status;
+    return {
+      ...this.view(order, version.name, order.customerUserId === null),
+      stage,
+      payment: latest ? { status: latest.status, startedAt: latest.createdAt.toISOString() } : null,
+      voucherAvailable: !!delivery,
+    };
   }
 }

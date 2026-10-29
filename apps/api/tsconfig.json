@@ -23,6 +23,12 @@
     },
     {
       "path": "../../packages/security"
+    },
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/payments"
     }
   ],
   "exclude": ["src/**/*.test.ts"]

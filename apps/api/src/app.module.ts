@@ -13,6 +13,13 @@ import { IdempotencyService } from './common/idempotency.service.js';
 import { OrdersController } from './orders/orders.controller.js';
 import { OrdersService } from './orders/orders.service.js';
 import { AccessService } from './vouchers/access.service.js';
+import { PaymentEngine } from '@netflex/core';
+import { FakePaymentProvider, PaystackProvider, type PaymentProvider } from '@netflex/payments';
+import { AdminPaymentsController } from './payments/admin-payments.controller.js';
+import { PaymentsService, deliveryKey } from './payments/payments.service.js';
+import { WebhooksController } from './payments/webhooks.controller.js';
+import { PAYMENT_ENGINE, PAYMENT_PROVIDER, PRISMA } from './infra/tokens.js';
+import type { PrismaClient } from '@netflex/database';
 import { RedemptionService } from './vouchers/redemption.service.js';
 import { VouchersController } from './vouchers/vouchers.controller.js';
 import { AuthService } from './auth/auth.service.js';
@@ -74,6 +81,8 @@ export class AppModule {
         CatalogController,
         OrdersController,
         VouchersController,
+        WebhooksController,
+        AdminPaymentsController,
       ],
       providers: [
         AuditService,
@@ -85,6 +94,26 @@ export class AppModule {
         OrdersService,
         AccessService,
         RedemptionService,
+        PaymentsService,
+        {
+          provide: PAYMENT_PROVIDER,
+          useFactory: (): PaymentProvider =>
+            config.PAYMENT_PROVIDER === 'paystack'
+              ? new PaystackProvider(config.PAYSTACK_SECRET_KEY as string, config.PAYSTACK_BASE_URL)
+              : new FakePaymentProvider(config.NETFLEX_ENV),
+        },
+        {
+          provide: PAYMENT_ENGINE,
+          inject: [PRISMA, PAYMENT_PROVIDER],
+          useFactory: (prisma: PrismaClient, provider: PaymentProvider) =>
+            new PaymentEngine(prisma, provider, {
+              voucher: {
+                pepper: config.VOUCHER_PEPPER,
+                pepperVersion: config.VOUCHER_PEPPER_VERSION,
+              },
+              deliveryKey: deliveryKey(config),
+            }),
+        },
         {
           provide: OTP_SENDER,
           useFactory: () =>

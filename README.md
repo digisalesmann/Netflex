@@ -2,7 +2,7 @@
 
 Managed Wi-Fi billing and access-control platform for a residential property in Nigeria. Vouchers, time-based plans, individual/room/floor access, Paystack payments, and gateway enforcement.
 
-**Status:** Phase 3 (plans, vouchers, orders) complete. Nothing is live. See [docs/status/capability-status.md](docs/status/capability-status.md) for what is verified and what is blocked.
+**Status:** Phase 4 (payments) built and tested with a test-only provider; the live Paystack sandbox run is pending the owner's test key. See [docs/payments/payments-guide.md](docs/payments/payments-guide.md). Nothing is live. See [docs/status/capability-status.md](docs/status/capability-status.md) for what is verified and what is blocked.
 
 The product spec is [docs/spec/NetFlex_Final_Master_Prompt.pdf](docs/spec/NetFlex_Final_Master_Prompt.pdf). Start with [docs/discovery-report.md](docs/discovery-report.md).
 
@@ -49,10 +49,12 @@ packages/config      environment validation (fails fast; refuses simulators in s
 packages/domain      framework-free business rules: money, time, vouchers, state machines, scope
 packages/database    Prisma schema, migrations, DB integrity tests
 packages/observability  JSON logging with secret redaction, request IDs
+packages/payments    PaymentProvider interface, Paystack adapter, test-only fake
+packages/core        shared business logic (audit, access, payment engine) for API and worker
 packages/security    password hashing, TOTP, encryption, tokens
 packages/ui          design tokens (CSS variables), WCAG contrast checks
 apps/api             NestJS REST API (/api/v1): auth, RBAC, properties, tenancy, staff, audit, plans, catalog, orders, vouchers; OpenAPI at /api/docs (non-production)
-apps/worker          outbox relay, BullMQ queues, heartbeat
+apps/worker          outbox relay, payment/refund jobs, 5-minute reconciliation, heartbeat
 scripts/             local dev services, test setup
 infra/deployment/    docker-compose for development
 docs/                discovery, architecture, ADRs, registers, status

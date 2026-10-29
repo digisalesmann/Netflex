@@ -209,7 +209,7 @@ describe('orders and money', () => {
 });
 
 describe('payments', () => {
-  it('allows only one successful payment per order', async () => {
+  it('records a duplicate real charge, but an order can be fulfilled only once', async () => {
     const o = await db.order.create({ data: orderData(w) });
     const base = {
       orderId: o.id,
@@ -221,14 +221,19 @@ describe('payments', () => {
       data: { ...base, providerReference: `r-${uniq()}`, status: 'SUCCEEDED' },
     });
     await db.payment.create({
-      data: { ...base, providerReference: `r-${uniq()}`, status: 'FAILED' },
+      data: { ...base, providerReference: `r-${uniq()}`, status: 'SUCCEEDED' },
     });
-    await expectDbError(
-      db.payment.create({
-        data: { ...base, providerReference: `r-${uniq()}`, status: 'SUCCEEDED' },
-      }),
-      /Unique constraint/i,
-    );
+    const sub = {
+      propertyId: w.propertyId,
+      orderId: o.id,
+      planVersionId: w.planVersionId,
+      planSnapshot: {},
+      scope: 'INDIVIDUAL' as const,
+      targetUserId: w.tenantId,
+      activationPolicy: 'ON_FIRST_AUTHORIZATION' as const,
+    };
+    await db.subscription.create({ data: sub });
+    await expectDbError(db.subscription.create({ data: sub }), /Unique constraint/i);
   });
 
   it('rejects duplicate provider references', async () => {

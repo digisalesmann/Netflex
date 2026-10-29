@@ -675,15 +675,16 @@ model Order {
   expiresAt           DateTime    @db.Timestamptz(3)
   paidAt              DateTime?   @db.Timestamptz(3)
 
-  property     Property      @relation(fields: [propertyId], references: [id], onDelete: Restrict)
-  customer     User?         @relation("OrderCustomer", fields: [customerUserId], references: [id], onDelete: Restrict)
-  planVersion  PlanVersion   @relation(fields: [planVersionId], references: [id], onDelete: Restrict)
-  targetUser   User?         @relation("OrderTargetUser", fields: [targetUserId], references: [id], onDelete: Restrict)
-  targetRoom   Room?         @relation(fields: [targetRoomId], references: [id], onDelete: Restrict)
-  targetFloor  Floor?        @relation(fields: [targetFloorId], references: [id], onDelete: Restrict)
+  property     Property          @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  customer     User?             @relation("OrderCustomer", fields: [customerUserId], references: [id], onDelete: Restrict)
+  planVersion  PlanVersion       @relation(fields: [planVersionId], references: [id], onDelete: Restrict)
+  targetUser   User?             @relation("OrderTargetUser", fields: [targetUserId], references: [id], onDelete: Restrict)
+  targetRoom   Room?             @relation(fields: [targetRoomId], references: [id], onDelete: Restrict)
+  targetFloor  Floor?            @relation(fields: [targetFloorId], references: [id], onDelete: Restrict)
   payments     Payment[]
   subscription Subscription?
   vouchers     Voucher[]
+  deliveries   VoucherDelivery[]
 
   @@index([propertyId, status, createdAt])
   @@index([customerUserId, createdAt])
@@ -700,6 +701,8 @@ model Payment {
   amountMinor           BigInt
   currency              String              @db.Char(3)
   status                PaymentStatus       @default(CREATED)
+  /// Provider checkout page for this attempt (not secret).
+  checkoutUrl           String?             @db.VarChar(500)
   verifiedAt            DateTime?           @db.Timestamptz(3)
   failureCode           String?             @db.VarChar(64)
   refundedMinor         BigInt              @default(0)
@@ -867,6 +870,7 @@ model Voucher {
   replaces    Voucher?            @relation("Reissue", fields: [replacesVoucherId], references: [id], onDelete: Restrict)
   replacedBy  Voucher?            @relation("Reissue")
   redemptions VoucherRedemption[]
+  delivery    VoucherDelivery?
 
   @@index([propertyId, status])
   @@index([entitlementId])
@@ -1124,4 +1128,24 @@ model ReconciliationDiscrepancy {
 
   @@index([resolvedAt, detectedAt])
   @@map("reconciliation_discrepancies")
+}
+
+/// Encrypted copy of a PAID voucher code so the buyer can retrieve it after
+/// payment confirmation (spec §8.2 one-time display/retrieval). AES-256-GCM with a
+/// key derived from VOUCHER_PEPPER. Deleted once the voucher is first used or
+/// the retrieval window ends.
+model VoucherDelivery {
+  voucherId      String    @id @db.Uuid
+  orderId        String    @db.Uuid
+  codeEnc        String    @db.VarChar(200)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  expiresAt      DateTime  @db.Timestamptz(3)
+  revealCount    Int       @default(0)
+  lastRevealedAt DateTime? @db.Timestamptz(3)
+
+  voucher Voucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([expiresAt])
+  @@map("voucher_deliveries")
 }

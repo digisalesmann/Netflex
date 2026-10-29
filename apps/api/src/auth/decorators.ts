@@ -10,6 +10,8 @@ export const OPTIONAL_AUTH = 'netflex:optional-auth';
 
 /** No session needed (sign-in, health, public catalog). */
 export const Public = () => SetMetadata(IS_PUBLIC, true);
+/** Server-to-server callbacks (payment webhooks) authenticated by signature instead of CSRF header. */
+export const SkipCsrf = () => SetMetadata('netflex:skip-csrf', true);
 /** On a public route: attach the session if a valid one is present, otherwise continue anonymously. */
 export const OptionalAuth = () => SetMetadata(OPTIONAL_AUTH, true);
 /** Reachable before MFA is complete or while a password change is pending. */
