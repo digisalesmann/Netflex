@@ -2,6 +2,7 @@ node_modules
 dist
 .next
 coverage
+!apps/web/src/app/(site)/coverage
 docs/spec
 package-lock.json
 **/migrations/**/*.sql

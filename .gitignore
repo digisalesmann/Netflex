@@ -3,6 +3,8 @@ dist/
 .next/
 out/
 coverage/
+# The public Coverage page is source, not test-coverage output.
+!apps/web/src/app/(site)/coverage/
 *.tsbuildinfo
 .env
 .env.*
