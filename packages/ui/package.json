@@ -1,0 +1,14 @@
+{
+  "name": "@netflex/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b && node scripts/build-css.mjs"
+  }
+}

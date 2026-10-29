@@ -15,10 +15,12 @@ export default tseslint.config(
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
       eqeqeq: ['error', 'always'],
+      // NestJS modules are decorated classes with only static factories.
+      '@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
     },
   },
   {
-    files: ['scripts/**', '**/*.config.*'],
+    files: ['scripts/**', '**/scripts/**', '**/*.config.*'],
     rules: { 'no-console': 'off' },
   },
 );

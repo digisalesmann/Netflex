@@ -30,6 +30,7 @@ jobs:
       NETFLEX_ENV: test
       TEST_DATABASE_URL: postgresql://netflex:netflex-dev-only@localhost:54329/netflex_test
       DATABASE_URL: postgresql://netflex:netflex-dev-only@localhost:54329/netflex_test
+      TEST_REDIS_URL: redis://localhost:63799/1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -43,7 +44,9 @@ jobs:
         run: npm run lint
       - name: Format
         run: npm run format:check
-      - name: Type-check
+      - name: Build
+        run: npm run build
+      - name: Type-check (including tests)
         run: npm run typecheck
       - name: Unit tests
         run: npm test

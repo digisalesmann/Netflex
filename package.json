@@ -11,8 +11,8 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
-    "typecheck": "tsc -b tsconfig.json",
+    "build": "npm run db:generate && tsc -b tsconfig.json && node packages/ui/scripts/build-css.mjs",
+    "typecheck": "tsc -b tsconfig.json && tsc -p tsconfig.tests.json",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -25,7 +25,9 @@
     "db:migrate:status": "npm run migrate:status -w @netflex/database",
     "services:start": "node scripts/dev-services.mjs start",
     "services:stop": "node scripts/dev-services.mjs stop",
-    "check": "npm run lint && npm run typecheck && npm test"
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
+    "start:api": "node --env-file=.env apps/api/dist/main.js",
+    "start:worker": "node --env-file=.env apps/worker/dist/main.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -41,13 +43,22 @@
     "vitest": "^4.1.12"
   },
   "overrides": {
-    "deepmerge-ts": "$deepmerge-ts"
+    "deepmerge-ts": "$deepmerge-ts",
+    "@nestjs/platform-express": {
+      "multer": "2.5.0"
+    },
+    "@nestjs/swagger": {
+      "js-yaml": "5.5.0"
+    }
   },
   "packageManager": "npm@11.21.1",
   "allowScripts": {
     "@embedded-postgres/darwin-x64@17.10.0-beta.17": true,
     "@prisma/client@6.19.3": true,
     "@prisma/engines@6.19.3": true,
-    "prisma@6.19.3": true
+    "prisma@6.19.3": true,
+    "@scarf/scarf": false,
+    "fsevents": false,
+    "msgpackr-extract": false
   }
 }

@@ -1,0 +1,18 @@
+{
+  "name": "@netflex/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -b",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@netflex/config": "0.1.0",
+    "@netflex/database": "0.1.0",
+    "@netflex/observability": "0.1.0",
+    "bullmq": "^5.56.0",
+    "ioredis": "^5.6.0"
+  }
+}

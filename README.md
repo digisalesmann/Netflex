@@ -2,7 +2,7 @@
 
 Managed Wi-Fi billing and access-control platform for a residential property in Nigeria. Vouchers, time-based plans, individual/room/floor access, Paystack payments, and gateway enforcement.
 
-**Status:** Phase 1 (foundation). Nothing is live. See [docs/status/capability-status.md](docs/status/capability-status.md) for what is verified and what is blocked.
+**Status:** Phase 1 (foundation) complete locally. Nothing is live. See [docs/status/capability-status.md](docs/status/capability-status.md) for what is verified and what is blocked.
 
 The product spec is [docs/spec/NetFlex_Final_Master_Prompt.pdf](docs/spec/NetFlex_Final_Master_Prompt.pdf). Start with [docs/discovery-report.md](docs/discovery-report.md).
 
@@ -28,6 +28,14 @@ npm run lint
 npm run typecheck
 npm test                          # unit tests
 npm run test:integration          # needs services running; uses database netflex_test
+npm run build
+```
+
+## Run
+
+```sh
+npm run start:api                 # http://localhost:4000/api/v1/health/ready
+npm run start:worker
 ```
 
 ## Layout
@@ -36,6 +44,10 @@ npm run test:integration          # needs services running; uses database netfle
 packages/config      environment validation (fails fast; refuses simulators in staging/production)
 packages/domain      framework-free business rules: money, time, vouchers, state machines, scope
 packages/database    Prisma schema, migrations, DB integrity tests
+packages/observability  JSON logging with secret redaction, request IDs
+packages/ui          design tokens (CSS variables), WCAG contrast checks
+apps/api             NestJS REST API (/api/v1), health checks, OpenAPI at /api/docs (non-production)
+apps/worker          outbox relay, BullMQ queues, heartbeat
 scripts/             local dev services, test setup
 infra/deployment/    docker-compose for development
 docs/                discovery, architecture, ADRs, registers, status
