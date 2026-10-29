@@ -59,6 +59,13 @@ jobs:
       - name: Browser end-to-end tests (simulated payments, SMS and gateway)
         run: |
           npx playwright install --with-deps chromium
-          PW_CHANNEL=chromium npm run test:e2e
+          set -o pipefail
+          PW_CHANNEL=chromium npm run test:e2e 2>&1 | tee e2e.log
+      - name: Show end-to-end failure summary
+        if: failure()
+        run: |
+          [ -f e2e.log ] || exit 0
+          # Public annotation with the tail of the log (no secrets: e2e uses simulated providers only).
+          printf '::error title=e2e log tail::%s\n' "$(tail -n 80 e2e.log | sed 's/\x1b\[[0-9;]*m//g' | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
       - name: Dependency audit (high and above)
         run: npm audit --audit-level=high --omit=dev
