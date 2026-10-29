@@ -13,6 +13,7 @@ const alias = {
   '@netflex/security': pkg('security'),
   '@netflex/payments': pkg('payments'),
   '@netflex/core': pkg('core'),
+  '@netflex/network': pkg('network'),
 };
 
 export default defineConfig({

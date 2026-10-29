@@ -2,7 +2,7 @@
 
 Managed Wi-Fi billing and access-control platform for a residential property in Nigeria. Vouchers, time-based plans, individual/room/floor access, Paystack payments, and gateway enforcement.
 
-**Status:** Phases 0–5 done (access lifecycle complete). The live Paystack sandbox run is pending the owner's test key ([payments guide](docs/payments/payments-guide.md)). Next: Phase 6 gateway integration, which is blocked on hardware. Nothing is live. See [docs/status/capability-status.md](docs/status/capability-status.md) for what is verified and what is blocked.
+**Status:** Phases 0–5 done (access lifecycle complete). The live Paystack sandbox run is pending the owner's test key ([payments guide](docs/payments/payments-guide.md)). Phase 6: the network engine is built and tested against a simulated gateway; the real router adapter is blocked on hardware ([network-engine.md](docs/network/network-engine.md)). Nothing is live. See [docs/status/capability-status.md](docs/status/capability-status.md) for what is verified and what is blocked.
 
 The product spec is [docs/spec/NetFlex_Final_Master_Prompt.pdf](docs/spec/NetFlex_Final_Master_Prompt.pdf). Start with [docs/discovery-report.md](docs/discovery-report.md).
 
@@ -49,12 +49,13 @@ packages/config      environment validation (fails fast; refuses simulators in s
 packages/domain      framework-free business rules: money, time, vouchers, state machines, scope
 packages/database    Prisma schema, migrations, DB integrity tests
 packages/observability  JSON logging with secret redaction, request IDs
+packages/network     NetworkAdapter contract, test-only simulated gateway
 packages/payments    PaymentProvider interface, Paystack adapter, test-only fake
 packages/core        shared business logic (audit, access, payment engine) for API and worker
 packages/security    password hashing, TOTP, encryption, tokens
 packages/ui          design tokens (CSS variables), WCAG contrast checks
 apps/api             NestJS REST API (/api/v1): auth, RBAC, properties, tenancy, staff, audit, plans, catalog, orders, vouchers, payments, access lifecycle; OpenAPI at /api/docs (non-production)
-apps/worker          outbox relay, payment/refund jobs, reconciliation (5 min), expiry (1 min), heartbeat
+apps/worker          outbox relay, payment/refund/network jobs, reconciliation (5 min), expiry (1 min), heartbeat
 scripts/             local dev services, test setup
 infra/deployment/    docker-compose for development
 docs/                discovery, architecture, ADRs, registers, status

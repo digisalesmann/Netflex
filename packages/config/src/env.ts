@@ -65,6 +65,14 @@ const envSchema = baseSchema.superRefine((cfg, ctx) => {
     if (cfg.OTP_PROVIDER === 'fake') fail('OTP_PROVIDER', 'fake provider is not allowed here');
   }
 
+  if (cfg.NETWORK_ADAPTER === 'mikrotik') {
+    // Spec §11: no real adapter before the hardware is confirmed and the PoC passes.
+    fail(
+      'NETWORK_ADAPTER',
+      'mikrotik adapter is not implemented until the gateway proof-of-concept passes',
+    );
+  }
+
   if (cfg.PAYMENT_PROVIDER === 'paystack') {
     const key = cfg.PAYSTACK_SECRET_KEY ?? '';
     if (!key) fail('PAYSTACK_SECRET_KEY', 'required when PAYMENT_PROVIDER=paystack');

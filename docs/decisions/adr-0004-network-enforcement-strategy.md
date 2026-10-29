@@ -30,6 +30,15 @@ Hardware is unknown. MikroTik RouterOS is the leading candidate (documents HotSp
 - If topology allows per-floor VLAN/SSID: ROOM/FLOOR entitlements also restrict to the zone (RADIUS can reject auth from a non-matching NAS/called-station/VLAN).
 - Otherwise: scope is enforced by identity (group membership + device cap) only, and this limitation is disclosed. **Owner decision after site survey.**
 
+## Update 2026-10-29: site upstream is a Starlink Mini
+
+The owner's uplink is a Starlink Mini on a Residential plan (CGNAT, no inbound). The design is unchanged:
+
+- the gateway sits behind the Mini in **Bypass Mode** and runs the captive portal;
+- management goes over an outbound VPN.
+
+If the account moves to Business Priority (reported to include a public IPv4), remote management is simpler, but the management interface must still not be exposed publicly. The hardware-independent engine is built (see `docs/network/network-engine.md`). The real adapter remains blocked on hardware.
+
 ## Consequences
 
 Until accepted, the `MikrotikAdapter` is labelled **Implemented but not live-verified** and is never enabled in production configuration.

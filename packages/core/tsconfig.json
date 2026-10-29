@@ -1,12 +1,30 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "rootDir": "src", "outDir": "dist", "types": ["node"] },
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["node"]
+  },
   "include": ["src"],
   "exclude": ["src/**/*.test.ts"],
   "references": [
-    { "path": "../database" },
-    { "path": "../domain" },
-    { "path": "../payments" },
-    { "path": "../security" }
+    {
+      "path": "../database"
+    },
+    {
+      "path": "../domain"
+    },
+    {
+      "path": "../payments"
+    },
+    {
+      "path": "../security"
+    },
+    {
+      "path": "../network"
+    },
+    {
+      "path": "../config"
+    }
   ]
 }

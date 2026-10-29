@@ -1,5 +1,10 @@
 import { ConfigError, loadConfig } from '@netflex/config';
-import { PaymentEngine, deriveDeliveryKey } from '@netflex/core';
+import {
+  DefaultAdapterRegistry,
+  NetworkEngine,
+  PaymentEngine,
+  deriveDeliveryKey,
+} from '@netflex/core';
 import { createPrismaClient } from '@netflex/database';
 import { createLogger } from '@netflex/observability';
 import { FakePaymentProvider, PaystackProvider, type PaymentProvider } from '@netflex/payments';
@@ -48,7 +53,11 @@ async function main(): Promise<void> {
     voucher: { pepper: config.VOUCHER_PEPPER, pepperVersion: config.VOUCHER_PEPPER_VERSION },
     deliveryKey: deriveDeliveryKey(config.VOUCHER_PEPPER),
   });
-  const process_ = createPaymentProcessor(engine, log, prisma);
+  const registry = new DefaultAdapterRegistry(config.NETWORK_ADAPTER, config.NETFLEX_ENV);
+  if (registry.fake)
+    log.warn('NETWORK_ADAPTER=fake: simulated gateway only; nothing is enforced on a real network');
+  const network = new NetworkEngine(prisma, registry);
+  const process_ = createPaymentProcessor(engine, log, prisma, network);
   const workers = [
     new Worker('payments', process_, { connection: redis, prefix: 'netflex', concurrency: 4 }),
     new Worker('reconciliation', process_, {
@@ -57,6 +66,8 @@ async function main(): Promise<void> {
       concurrency: 1,
     }),
     new Worker('maintenance', process_, { connection: redis, prefix: 'netflex', concurrency: 1 }),
+    // Gateway changes are serialized per worker to avoid flooding a small router.
+    new Worker('provisioning', process_, { connection: redis, prefix: 'netflex', concurrency: 2 }),
   ];
   for (const w of workers) {
     w.on('failed', (job, err) =>
@@ -78,6 +89,13 @@ async function main(): Promise<void> {
       'expire-entitlements',
       { every: EXPIRE_EVERY_MS },
       { name: 'entitlements.expire', data: {} },
+    );
+  await sink.queues
+    .get('reconciliation')
+    ?.upsertJobScheduler(
+      'reconcile-network',
+      { every: RECONCILE_EVERY_MS },
+      { name: 'reconcile.network', data: {} },
     );
   await sink.queues
     .get('reconciliation')

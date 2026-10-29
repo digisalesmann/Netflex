@@ -9,8 +9,10 @@
     "build": "tsc -b"
   },
   "dependencies": {
+    "@netflex/config": "0.1.0",
     "@netflex/database": "0.1.0",
     "@netflex/domain": "0.1.0",
+    "@netflex/network": "0.1.0",
     "@netflex/payments": "0.1.0",
     "@netflex/security": "0.1.0"
   }

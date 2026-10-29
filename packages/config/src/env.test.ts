@@ -61,6 +61,10 @@ describe('loadConfig', () => {
     ).toThrow(/test secret key/);
   });
 
+  it('refuses the MikroTik adapter until the hardware proof-of-concept', () => {
+    expect(() => loadConfig({ ...base, NETWORK_ADAPTER: 'mikrotik' })).toThrow(/proof-of-concept/);
+  });
+
   it('requires https in production', () => {
     expect(() => loadConfig({ ...prod, PUBLIC_WEB_URL: 'http://netflex.example' })).toThrow(
       /https/,

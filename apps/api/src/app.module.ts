@@ -15,12 +15,19 @@ import { IdempotencyService } from './common/idempotency.service.js';
 import { OrdersController } from './orders/orders.controller.js';
 import { OrdersService } from './orders/orders.service.js';
 import { AccessService } from './vouchers/access.service.js';
-import { PaymentEngine } from '@netflex/core';
+import { DefaultAdapterRegistry, NetworkEngine, PaymentEngine } from '@netflex/core';
+import { NetworkController } from './network/network.controller.js';
 import { FakePaymentProvider, PaystackProvider, type PaymentProvider } from '@netflex/payments';
 import { AdminPaymentsController } from './payments/admin-payments.controller.js';
 import { PaymentsService, deliveryKey } from './payments/payments.service.js';
 import { WebhooksController } from './payments/webhooks.controller.js';
-import { PAYMENT_ENGINE, PAYMENT_PROVIDER, PRISMA } from './infra/tokens.js';
+import {
+  ADAPTER_REGISTRY,
+  NETWORK_ENGINE,
+  PAYMENT_ENGINE,
+  PAYMENT_PROVIDER,
+  PRISMA,
+} from './infra/tokens.js';
 import type { PrismaClient } from '@netflex/database';
 import { RedemptionService } from './vouchers/redemption.service.js';
 import { VouchersController } from './vouchers/vouchers.controller.js';
@@ -87,6 +94,7 @@ export class AppModule {
         AdminPaymentsController,
         AdminAccessController,
         MyAccessController,
+        NetworkController,
       ],
       providers: [
         AuditService,
@@ -100,6 +108,16 @@ export class AppModule {
         RedemptionService,
         PaymentsService,
         LifecycleService,
+        {
+          provide: ADAPTER_REGISTRY,
+          useFactory: () => new DefaultAdapterRegistry(config.NETWORK_ADAPTER, config.NETFLEX_ENV),
+        },
+        {
+          provide: NETWORK_ENGINE,
+          inject: [PRISMA, ADAPTER_REGISTRY],
+          useFactory: (prisma: PrismaClient, registry: DefaultAdapterRegistry) =>
+            new NetworkEngine(prisma, registry),
+        },
         {
           provide: PAYMENT_PROVIDER,
           useFactory: (): PaymentProvider =>

@@ -8,6 +8,7 @@
     { "path": "packages/ui" },
     { "path": "packages/security" },
     { "path": "packages/payments" },
+    { "path": "packages/network" },
     { "path": "packages/core" },
     { "path": "apps/api" },
     { "path": "apps/worker" }

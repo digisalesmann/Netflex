@@ -1,4 +1,9 @@
-import { expireDue, type PaymentEngine } from '@netflex/core';
+import {
+  expireDue,
+  type NetworkCommand,
+  type NetworkEngine,
+  type PaymentEngine,
+} from '@netflex/core';
 import type { PrismaClient } from '@netflex/database';
 import type { Logger } from '@netflex/observability';
 
@@ -14,7 +19,12 @@ export interface JobLike {
  * outbox re-relays are safe. Unknown job names fail loudly (kept for inspection)
  * instead of being silently dropped.
  */
-export function createPaymentProcessor(engine: PaymentEngine, log: Logger, prisma?: PrismaClient) {
+export function createPaymentProcessor(
+  engine: PaymentEngine,
+  log: Logger,
+  prisma?: PrismaClient,
+  network?: NetworkEngine,
+) {
   return async (job: JobLike): Promise<unknown> => {
     const payload = job.data.payload ?? {};
     const str = (k: string) => {
@@ -50,6 +60,31 @@ export function createPaymentProcessor(engine: PaymentEngine, log: Logger, prism
         const r = await expireDue(prisma);
         if (r.expired || r.deadlinesMissed)
           log.info({ job: job.name, ...r }, 'entitlements expired');
+        return r;
+      }
+      case 'network.activate':
+      case 'network.suspend':
+      case 'network.revoke':
+      case 'network.disconnect':
+      case 'network.apply_policy': {
+        if (!network) throw new Error('network engine not configured');
+        const outboxEventId =
+          typeof job.data.outboxEventId === 'string' ? job.data.outboxEventId : (job.id ?? '');
+        const r = await network.processCommand(outboxEventId, job.name as NetworkCommand, payload);
+        log.info({ job: job.name, jobId: job.id, result: r }, 'network operation');
+        return r;
+      }
+      case 'network.replay': {
+        if (!network) throw new Error('network engine not configured');
+        return network.processOperation(str('operationId'));
+      }
+      case 'reconcile.network': {
+        if (!network) throw new Error('network engine not configured');
+        const r = await network.reconcileAll();
+        log.info(
+          { job: job.name, properties: Object.keys(r).length },
+          'network reconciliation run',
+        );
         return r;
       }
       default:
