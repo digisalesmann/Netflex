@@ -457,9 +457,27 @@ describe('financial correctness', () => {
     ).toBe(1);
   });
 
+  it('a slow customer still gets access: "abandoned" within 48 h is treated as not paid yet', async () => {
+    const { orderId, paymentId, reference } = await orderAndCheckout();
+    fake.complete(reference, { status: 'abandoned' });
+    await h.prisma
+      .$executeRaw`UPDATE "payments" SET "createdAt" = now() - interval '10 minutes' WHERE "id" = ${paymentId}::uuid`;
+    await engine.reconcile();
+    expect((await h.prisma.payment.findUniqueOrThrow({ where: { id: paymentId } })).status).toBe(
+      'PENDING',
+    );
+    fake.complete(reference, { status: 'success' });
+    expect(await engine.settle(paymentId, 'webhook:charge.success')).toBe('SUCCEEDED_FULFILLED');
+    expect(await h.prisma.voucher.count({ where: { orderId } })).toBe(1);
+  });
+
   it('a late success on an abandoned payment becomes a discrepancy, not silent money', async () => {
     const { orderId, paymentId, reference } = await orderAndCheckout();
     fake.complete(reference, { status: 'abandoned' });
+    // Paystack reports not-yet-paid checkouts as "abandoned": still open within 48 h.
+    expect(await engine.settle(paymentId, 'test')).toBe('STILL_PENDING');
+    await h.prisma
+      .$executeRaw`UPDATE "payments" SET "createdAt" = now() - interval '49 hours' WHERE "id" = ${paymentId}::uuid`;
     expect(await engine.settle(paymentId, 'test')).toBe('ABANDONED');
     fake.complete(reference, { status: 'success' });
     await webhook(chargeSuccess(reference)).expect(200);

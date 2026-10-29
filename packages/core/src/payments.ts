@@ -212,6 +212,12 @@ export class PaymentEngine {
         return 'SUCCEEDED_DISCREPANCY';
       }
 
+      // Live Paystack test (2026-10-29): a checkout that simply hasn't been paid YET
+      // verifies as "abandoned", the same as one the customer gave up on. Closing it
+      // immediately would turn a slow-but-successful payment into a manual
+      // discrepancy, so "abandoned" stays open until the give-up window passes.
+      if (verified.status === 'abandoned' && age <= PENDING_GIVE_UP_MS) return 'STILL_PENDING';
+
       if (verified.status === 'failed' || verified.status === 'abandoned') {
         const to: PaymentStatus = verified.status === 'failed' ? 'FAILED' : 'ABANDONED';
         await this.setPaymentStatus(tx, pay.id, pay.status, to, {

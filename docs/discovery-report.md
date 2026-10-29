@@ -97,25 +97,25 @@ The full list, with owners and impact, is in the [assumptions register](assumpti
 
 Every item is **Unavailable — not yet provided**. Do not put passwords in this file; secrets go through the procedure in §4.1.
 
-| Item                                                                                               | Value                    | Status      |
-| -------------------------------------------------------------------------------------------------- | ------------------------ | ----------- |
-| Starlink kit model (dish/router generation)                                                        | _TBD_                    | Unavailable |
-| Starlink service plan (Residential / Roam / Priority / Local Priority / other) and account country | _TBD_                    | Unavailable |
-| Existing gateway/router make, model, firmware                                                      | _TBD_                    | Unavailable |
-| Admin access to existing gateway (who holds it, how)                                               | _TBD_                    | Unavailable |
-| Access points: make, model, firmware, controller, PoE needs                                        | _TBD_                    | Unavailable |
-| Switches: make, model, managed/unmanaged, VLAN support, PoE budget                                 | _TBD_                    | Unavailable |
-| Physical topology (Starlink → gateway → switch → APs → rooms/floors)                               | _TBD — sketch or photos_ | Unavailable |
-| Subnets, DHCP, DNS, NAT, VLANs, client isolation, current SSIDs                                    | _TBD_                    | Unavailable |
-| Floor plan, wall materials, known dead zones                                                       | _TBD_                    | Unavailable |
-| Number of buildings / floors / rooms                                                               | _TBD_                    | Unavailable |
-| Do users roam between APs?                                                                         | _TBD_                    | Unavailable |
-| Estimated tenants, devices per tenant, peak concurrent devices                                     | _TBD_                    | Unavailable |
-| Expected peak throughput / traffic profile (streaming, calls, work)                                | _TBD_                    | Unavailable |
-| Power backup (inverter/UPS/generator) and runtime for network gear                                 | _TBD_                    | Unavailable |
-| Safe recovery method if NetFlex/cloud is down (local console, physical port)                       | _TBD_                    | Unavailable |
-| Can a dedicated gateway be inserted without breaking service?                                      | _TBD_                    | Unavailable |
-| Can management traffic use VPN/private path? (Starlink is typically CGNAT — no inbound)            | _TBD_                    | Unavailable |
+| Item                                                                                               | Value                                                                               | Status                                                 |
+| -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Starlink kit model (dish/router generation)                                                        | **Starlink Mini** (built-in Wi-Fi router; one Ethernet port; bypass mode available) | Provided 2026-10-29                                    |
+| Starlink service plan (Residential / Roam / Priority / Local Priority / other) and account country | **Residential**, Nigeria                                                            | Provided 2026-10-29: resale gate G1 fails on this plan |
+| Existing gateway/router make, model, firmware                                                      | _TBD_                                                                               | Unavailable                                            |
+| Admin access to existing gateway (who holds it, how)                                               | _TBD_                                                                               | Unavailable                                            |
+| Access points: make, model, firmware, controller, PoE needs                                        | _TBD_                                                                               | Unavailable                                            |
+| Switches: make, model, managed/unmanaged, VLAN support, PoE budget                                 | _TBD_                                                                               | Unavailable                                            |
+| Physical topology (Starlink → gateway → switch → APs → rooms/floors)                               | _TBD — sketch or photos_                                                            | Unavailable                                            |
+| Subnets, DHCP, DNS, NAT, VLANs, client isolation, current SSIDs                                    | _TBD_                                                                               | Unavailable                                            |
+| Floor plan, wall materials, known dead zones                                                       | _TBD_                                                                               | Unavailable                                            |
+| Number of buildings / floors / rooms                                                               | _TBD_                                                                               | Unavailable                                            |
+| Do users roam between APs?                                                                         | _TBD_                                                                               | Unavailable                                            |
+| Estimated tenants, devices per tenant, peak concurrent devices                                     | _TBD_                                                                               | Unavailable                                            |
+| Expected peak throughput / traffic profile (streaming, calls, work)                                | _TBD_                                                                               | Unavailable                                            |
+| Power backup (inverter/UPS/generator) and runtime for network gear                                 | _TBD_                                                                               | Unavailable                                            |
+| Safe recovery method if NetFlex/cloud is down (local console, physical port)                       | _TBD_                                                                               | Unavailable                                            |
+| Can a dedicated gateway be inserted without breaking service?                                      | _TBD_                                                                               | Unavailable                                            |
+| Can management traffic use VPN/private path? (Starlink is typically CGNAT — no inbound)            | _TBD_                                                                               | Unavailable                                            |
 
 ### 4.1 Secure secret-entry procedure (for later)
 

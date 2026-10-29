@@ -21,6 +21,13 @@ Checked 2026-10-29. paystack.com/docs blocks automated readers (HTTP 403), so th
 | Refund events         | `refund.pending`, `refund.processing`, `refund.processed`, `refund.failed`. `data.amount` is a **string**, `data.transaction_reference` identifies the payment, `data.refund_reference` is the processor's reference | snippets `events.js`                    |
 | Webhook endpoints API | `/integration/webhooks/endpoints` (multiple endpoints with event filters). No separate signing secret appears in the documented responses                                                                            | snippets `api/webhook-endpoints/*`      |
 
+## Verified live (Paystack test mode, 2026-10-29)
+
+| Check                                                                                                                  | Result                                                                                                                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /transaction/initialize` with the owner's `sk_test_` key, ₦100.00 (10000 kobo), reference `NFX-SANDBOX-MVTMR2QP` | `status: true`, a real `checkout.paystack.com` URL, the same reference echoed back                                                                                                                                                                  |
+| `GET /transaction/verify/NFX-SANDBOX-MVTMR2QP` **before payment**                                                      | `data.status = "abandoned"`, amount 10000, currency NGN, `paid_at` null. **An unpaid open checkout reports `abandoned`, not `pending`.** The engine therefore treats `abandoned` as still open for 48 hours (bug found by this live test and fixed) |
+
 ## Not verified (treat as unknown)
 
 - **Webhook source IP addresses:** not in the sources above. NetFlex relies on the signature, which is mandatory. An IP allowlist is optional hardening once confirmed from the Paystack dashboard or support.

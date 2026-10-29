@@ -29,6 +29,19 @@ Existing gateway: **make/model unknown** — every cell is `?` until the owner p
 | Secure remote management          | **Yes**             | Doc (WireGuard client in v7 — router dials out)                   | Doc (cloud controller)                                     | ?                | —                                                         | #14 + CGNAT test                     | Cannot manage from cloud through Starlink CGNAT                |
 | Firmware / vendor lifecycle       | **Yes**             | ? (check model EOL, local availability in Nigeria)                | ?                                                          | ?                | —                                                         | —                                    | Supportability risk                                            |
 
+## Upstream: Starlink Mini (owner, 2026-10-29)
+
+| Fact                            | Value                                                                                                                                                                              | Source                                                    |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Kit                             | Starlink Mini, with an integrated Wi-Fi router                                                                                                                                     | Owner                                                     |
+| Connecting a dedicated gateway  | Enable **Bypass Mode** in the Starlink app (Settings → Bypass Mode); the Mini's router is then off and the gateway takes over via Ethernet. Disabling bypass needs a factory reset | Starlink support article (via search); third-party guides |
+| Ethernet                        | One LAN port; it **does not supply PoE**, so the gateway needs its own power                                                                                                       | Third-party guides (verify on the actual unit)            |
+| Power                           | ~25–40 W average (secondary source); DC input                                                                                                                                      | Reseller spec sheet (verify)                              |
+| Capacity for a multi-room lodge | **Unknown**; the Mini is designed as a portable kit. Measure throughput at peak during the PoC                                                                                     | —                                                         |
+| Public inbound IP               | Not on Residential (CGNAT); the Nigerian Business Priority plan is reported to include a public IPv4                                                                               | Legit.ng 2026-02-26 (secondary)                           |
+
+Implications: the captive portal and access control must run on a **separate gateway** (Mini in bypass mode → gateway → switch/APs). The Mini's built-in Wi-Fi can't do vouchers or captive portals. Management still needs the outbound VPN design (ADR-0004) unless a public IP is available.
+
 ## Next steps to fill this matrix
 
 1. Owner supplies the existing gateway/AP/switch models (discovery report §4).
