@@ -8905,3 +8905,119 @@ summary {
     flex: 1 1 100%;
   }
 }
+/* ---------- office: settings */
+.adm-setting {
+  scroll-margin-top: 5rem;
+}
+.adm-setting__body--wide {
+  max-width: 52rem;
+}
+.adm-split {
+  display: grid;
+  gap: var(--nf-space-6);
+  align-items: start;
+}
+@media (min-width: 1100px) {
+  .adm-split {
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    gap: var(--nf-space-7);
+  }
+}
+.adm-form__bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nf-space-2) var(--nf-space-3);
+  align-items: center;
+  margin-top: var(--nf-space-2);
+}
+.adm-preview {
+  margin: 0;
+  padding: var(--nf-space-5);
+  border: 1px dashed var(--nf-color-border-strong);
+  border-radius: 1rem;
+}
+.adm-preview figcaption {
+  margin-bottom: var(--nf-space-4);
+  color: var(--nf-color-text-muted);
+  font-size: var(--nf-text-xs);
+  font-weight: var(--nf-weight-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.adm-preview p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.adm-preview__name {
+  font-size: var(--nf-text-lg);
+  font-weight: var(--nf-weight-semibold);
+  letter-spacing: -0.01em;
+}
+.adm-preview__help {
+  margin-top: var(--nf-space-4) !important;
+  color: var(--nf-color-text-muted);
+  font-size: var(--nf-text-sm);
+}
+.adm-preview__line {
+  color: var(--nf-color-accent);
+  font-size: var(--nf-text-sm);
+  font-weight: var(--nf-weight-semibold);
+}
+.adm-me-card {
+  display: flex;
+  gap: var(--nf-space-3);
+  align-items: center;
+}
+.adm-facts__line {
+  display: block;
+}
+.adm-facts dd .adm-btn {
+  min-height: 2.25rem;
+  padding: 0 var(--nf-space-4);
+}
+.adm-setting__body .adm-sub {
+  margin: 0;
+}
+.adm-devices {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.adm-devices li {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  gap: var(--nf-space-3);
+  align-items: center;
+  padding: var(--nf-space-3) 0;
+  border-bottom: var(--nf-border-hairline) solid var(--nf-color-border);
+}
+.adm-devices li:first-child {
+  padding-top: 0;
+}
+.adm-devices svg {
+  width: 1.375rem;
+  height: 1.375rem;
+  color: var(--nf-color-text-muted);
+}
+.adm-devices__text {
+  display: grid;
+  min-width: 0;
+}
+.adm-devices__text strong {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nf-space-2);
+  align-items: center;
+}
+.adm-devices__text span:not(.adm-badge) {
+  color: var(--nf-color-text-muted);
+  font-size: var(--nf-text-sm);
+}
+.adm-devices .adm-btn {
+  min-height: 2.25rem;
+  padding: 0 var(--nf-space-4);
+}
+.adm-setting__body .adm-after,
+.adm-setting__body .adm-sub.adm-after {
+  margin-top: var(--nf-space-4);
+}

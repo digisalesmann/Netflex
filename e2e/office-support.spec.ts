@@ -38,18 +38,26 @@ test('support and settings: a guest writes in, staff take it and resolve it; lod
   await page.getByRole('link', { name: 'Done' }).click();
   await expect(page.locator('.adm-ticket', { hasText: subject })).toContainText('Resolved');
 
-  // Settings: change the lodge email, see it on the public catalog, then put it back.
+  // Settings: save wakes up on change, the preview follows, and the public catalog updates.
   await goTo(page, 'Settings');
   await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible();
+  const save = page.getByRole('button', { name: 'Save changes' });
+  await expect(save).toBeDisabled();
   const email = page.getByLabel('Email for residents');
   const before = await email.inputValue();
   await email.fill(`desk-${info.project.name}@lodge.test`);
-  await page.getByRole('button', { name: 'Save details' }).click();
-  await expect(page.getByRole('button', { name: 'Saved' })).toBeVisible();
+  await expect(page.getByRole('figure', { name: 'How residents see it' })).toContainText(
+    `desk-${info.project.name}@lodge.test`,
+  );
+  await save.click();
+  await expect(page.getByText(/^Saved\./)).toBeVisible();
+  await expect(save).toBeDisabled();
   const pub = await (await page.request.get('/api/v1/catalog/properties/e2e-lodge')).json();
   expect(pub.data.supportEmail).toBe(`desk-${info.project.name}@lodge.test`);
+  await expect(page.locator('.adm-devices')).toContainText('This device');
   await expectAccessible(page);
+  await expectNoHorizontalOverflow(page);
   await email.fill(before);
-  await page.getByRole('button', { name: /Save details|Saved/ }).click();
-  await expect(page.getByRole('button', { name: 'Saved' })).toBeVisible();
+  await save.click();
+  await expect(save).toBeDisabled();
 });

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError, api } from '@/lib/api';
+import { describeDevice as describe } from '@/lib/devices';
 import { ConfirmButton } from '../ConfirmButton';
 
 type Channel = { expiryReminders: boolean; receipts: boolean; outageNotices: boolean };
@@ -48,37 +49,6 @@ function Icon({ d }: { d: string }) {
       <path d={d} />
     </svg>
   );
-}
-
-/** "Chrome on Android" from a user-agent string, plus whether it's a phone. */
-function describe(ua: string | null): { name: string; phone: boolean } {
-  if (!ua) return { name: 'Unknown device', phone: false };
-  const phone = /Mobile|Android|iPhone|iPad/i.test(ua);
-  const browser = /Edg\//.test(ua)
-    ? 'Edge'
-    : /OPR\/|Opera/.test(ua)
-      ? 'Opera'
-      : /Firefox\//.test(ua)
-        ? 'Firefox'
-        : /Chrome\//.test(ua)
-          ? 'Chrome'
-          : /Safari\//.test(ua)
-            ? 'Safari'
-            : 'Browser';
-  const os = /iPhone/.test(ua)
-    ? 'iPhone'
-    : /iPad/.test(ua)
-      ? 'iPad'
-      : /Android/.test(ua)
-        ? 'Android'
-        : /Mac OS X/.test(ua)
-          ? 'Mac'
-          : /Windows/.test(ua)
-            ? 'Windows'
-            : /Linux/.test(ua)
-              ? 'Linux'
-              : '';
-  return { name: os ? `${browser} on ${os}` : browser, phone };
 }
 
 const ago = (iso: string) =>
