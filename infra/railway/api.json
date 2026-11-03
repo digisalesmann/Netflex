@@ -1,8 +1,13 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
-  "build": { "builder": "DOCKERFILE", "dockerfilePath": "Dockerfile" },
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
+  },
   "deploy": {
-    "preDeployCommand": ["npm run db:migrate:deploy"],
+    "preDeployCommand": [
+      "node node_modules/prisma/build/index.js migrate deploy --schema packages/database/prisma/schema.prisma"
+    ],
     "startCommand": "node apps/api/dist/main.js",
     "healthcheckPath": "/api/v1/health/ready",
     "healthcheckTimeout": 60,

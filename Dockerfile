@@ -12,9 +12,9 @@ RUN npm run build
 
 FROM node:22.12-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
-  && rm -rf /var/lib/apt/lists/* \
-  && npm install -g npm@11.21.1
+  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+# Services start with plain `node` (see infra/railway/*.json), never npm/npx.
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
 COPY --from=build /app /app
 USER node
