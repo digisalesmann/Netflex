@@ -178,7 +178,8 @@ export class VouchersController {
     };
     const rows = await this.prisma.voucher.findMany({
       where,
-      orderBy: { id: 'asc' },
+      // Newest first (id breaks ties so cursor paging stays stable).
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: q.limit + 1,
       ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
       select: {
@@ -196,12 +197,22 @@ export class VouchersController {
         entitlementId: true,
         replacesVoucherId: true,
         issuedBy: { select: { id: true, displayName: true } },
+        entitlement: {
+          select: {
+            status: true,
+            expiresAt: true,
+            subscription: { select: { planVersion: { select: { name: true } } } },
+          },
+        },
         _count: { select: { redemptions: { where: { releasedAt: null } } } },
       },
     });
-    const data = rows
-      .slice(0, q.limit)
-      .map(({ _count, ...v }) => ({ ...v, activeDevices: _count.redemptions }));
+    const data = rows.slice(0, q.limit).map(({ _count, entitlement, ...v }) => ({
+      ...v,
+      activeDevices: _count.redemptions,
+      planName: entitlement?.subscription.planVersion.name ?? null,
+      expiresAt: entitlement?.expiresAt ?? null,
+    }));
     return { data, meta: { nextCursor: rows.length > q.limit ? data.at(-1)?.id : null } };
   }
 

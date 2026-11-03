@@ -73,8 +73,11 @@ export function ActionForm({
   cta,
   busyCta = 'Saving…',
   tone = 'solid',
+  refresh = true,
   children,
 }: {
+  /** Refresh the page data after success (off when the result must stay on screen first). */
+  refresh?: boolean;
   /** Runs the API call with the form's values. */
   submit: (f: FormData) => Promise<unknown>;
   /** Called after success (e.g. close the panel). The page data refreshes automatically. */
@@ -93,7 +96,7 @@ export function ActionForm({
     setError(null);
     try {
       const r = await submit(new FormData(e.currentTarget));
-      router.refresh();
+      if (refresh) router.refresh();
       done?.(r);
     } catch (err) {
       setError(errorText(err));

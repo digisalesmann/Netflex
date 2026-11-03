@@ -23,6 +23,18 @@ const NAV: (NavItem & { need?: Permission })[] = [
     need: 'property.read',
     icon: 'M4 20V5.5A1.5 1.5 0 0 1 5.5 4h9A1.5 1.5 0 0 1 16 5.5V20M16 9h2.5A1.5 1.5 0 0 1 20 10.5V20M2.5 20h19M12.5 12.5h.01',
   },
+  {
+    href: '/admin/plans',
+    label: 'Plans',
+    need: 'plan.read',
+    icon: 'M6 3.5h12v17l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4zM9 8.5h6M9 12h6M9 15.5h3.5',
+  },
+  {
+    href: '/admin/vouchers',
+    label: 'Vouchers',
+    need: 'voucher.read',
+    icon: 'M5.5 6h13A1.5 1.5 0 0 1 20 7.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5V14a2 2 0 0 0 0-4V7.5A1.5 1.5 0 0 1 5.5 6zM14.5 6.5v1.5M14.5 11.25v1.5M14.5 16v1.5',
+  },
 ];
 
 export default async function OfficeLayout({ children }: { children: ReactNode }) {
