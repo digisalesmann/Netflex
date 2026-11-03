@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { Select } from '../Select';
 import { api } from '@/lib/api';
 import { ActionForm, Field, Panel, lagosDayStart, todayLagos } from './kit';
 
@@ -15,21 +16,23 @@ const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 
 function RoomSelect({ groups, name = 'roomId' }: { groups: RoomGroup[]; name?: string }) {
   return (
-    <select name={name} required defaultValue="">
-      <option value="" disabled>
-        Choose a room
-      </option>
-      {groups.map((g) => (
-        <optgroup key={g.floorId} label={g.group}>
-          {g.rooms.map((r) => (
-            <option key={r.id} value={r.id}>
-              Room {r.label}
-            </option>
-          ))}
-        </optgroup>
-      ))}
-    </select>
+    <Select
+      name={name}
+      required
+      placeholder="Choose a room"
+      groups={groups.map((g) => ({
+        label: g.group,
+        options: g.rooms.map((r) => ({ value: r.id, label: `Room ${r.label}` })),
+      }))}
+    />
   );
+}
+
+/** The chosen room, or a plain message when none was picked. */
+function roomOf(f: FormData): string {
+  const v = String(f.get('roomId') ?? '');
+  if (!v) throw new Error('Choose a room.');
+  return v;
 }
 
 export function AddResident({ propertyId, groups }: { propertyId: string; groups: RoomGroup[] }) {
@@ -55,7 +58,7 @@ export function AddResident({ propertyId, groups }: { propertyId: string; groups
                 displayName: str(f, 'name'),
                 email: str(f, 'email').toLowerCase(),
                 ...(str(f, 'phone') ? { phone: str(f, 'phone') } : {}),
-                roomId: str(f, 'roomId'),
+                roomId: roomOf(f),
                 startsAt: lagosDayStart(str(f, 'startsAt')),
                 ...(str(f, 'reason') ? { reason: str(f, 'reason') } : {}),
               },
@@ -114,7 +117,7 @@ export function MoveRoom({
               method: 'POST',
               body: {
                 userId,
-                roomId: str(f, 'roomId'),
+                roomId: roomOf(f),
                 startsAt: lagosDayStart(str(f, 'startsAt')),
                 reason: str(f, 'reason'),
               },

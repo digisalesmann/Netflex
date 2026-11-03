@@ -27,7 +27,10 @@ test('rooms and residents: add rooms, onboard, give rights, move, move out', asy
   const dlg = page.getByRole('dialog');
   await dlg.getByLabel('Full name').fill(`Chidi ${p}`);
   await dlg.getByLabel('Email').fill(email);
-  await dlg.getByLabel('Room').selectOption({ label: `Room ${p}1` });
+  await dlg.getByRole('combobox', { name: 'Room' }).click();
+  await dlg.getByRole('option', { name: `Room ${p}1`, exact: true }).click();
+  await expect(dlg.getByRole('listbox')).toBeHidden();
+  await expect(dlg.getByRole('combobox', { name: 'Room' })).toHaveText(`Room ${p}1`);
   await dlg.getByRole('button', { name: 'Add resident' }).click();
   await expect(page.getByRole('heading', { name: `Chidi ${p}`, level: 1 })).toBeVisible();
   await expect(page.getByText(`Room ${p}1 · Ground`)).toBeVisible();
@@ -42,10 +45,11 @@ test('rooms and residents: add rooms, onboard, give rights, move, move out', asy
 
   // Move to the second room: room rights for the old room end.
   await page.getByRole('button', { name: 'Move room' }).click();
+  await page.getByRole('dialog').getByRole('combobox', { name: 'New room' }).click();
   await page
     .getByRole('dialog')
-    .getByLabel('New room')
-    .selectOption({ label: `Room ${p}2` });
+    .getByRole('option', { name: `Room ${p}2`, exact: true })
+    .click();
   await page.getByRole('dialog').getByLabel('Reason').fill('Swapped rooms');
   await page.getByRole('dialog').getByRole('button', { name: 'Move' }).click();
   await expect(page.getByText(`Room ${p}2 · Ground`)).toBeVisible();

@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/lib/api';
 import { ConfirmButton } from '../ConfirmButton';
 import { Logo } from '../Logo';
+import { Select } from '../Select';
 
 export interface NavItem {
   href: string;
@@ -65,16 +66,14 @@ export function AdminShell({
           <Logo decorative />
         </Link>
         {properties.length > 1 ? (
-          <label className="adm-prop">
-            <span className="adm-sr">Property</span>
-            <select value={property?.id ?? ''} onChange={(e) => switchTo(e.target.value)}>
-              {properties.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="adm-prop">
+            <Select
+              label="Property"
+              value={property?.id ?? ''}
+              onChange={switchTo}
+              options={properties.map((p) => ({ value: p.id, label: p.name }))}
+            />
+          </div>
         ) : (
           <p className="adm-prop adm-prop--single">{property?.name ?? 'No property yet'}</p>
         )}

@@ -6488,16 +6488,6 @@ summary {
   font-size: var(--nf-text-sm);
   font-weight: var(--nf-weight-semibold);
 }
-.adm-prop select {
-  width: 100%;
-  min-height: 2.5rem;
-  padding: 0 var(--nf-space-3);
-  border: 1px solid var(--nf-color-border);
-  border-radius: 0.75rem;
-  background: var(--nf-color-bg);
-  color: var(--nf-color-text);
-  font: inherit;
-}
 .adm-nav {
   display: grid;
   gap: 0.15rem;
@@ -7545,4 +7535,167 @@ summary {
       transform: translateY(100%);
     }
   }
+}
+
+/* ---------- Custom dropdown (sel-*) */
+.sel {
+  position: relative;
+  width: 100%;
+}
+.sel__label {
+  display: block;
+  margin-bottom: var(--nf-space-1);
+  font-size: var(--nf-text-sm);
+  font-weight: var(--nf-weight-semibold);
+}
+.sel__button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nf-space-3);
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0 var(--nf-space-3) 0 var(--nf-space-4);
+  border: 1px solid var(--nf-color-border-strong);
+  border-radius: 0.75rem;
+  background: var(--nf-color-bg);
+  color: var(--nf-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--nf-motion-fast) var(--nf-motion-easing),
+    box-shadow var(--nf-motion-fast) var(--nf-motion-easing);
+}
+.sel__button[data-empty='true'] .sel__value {
+  color: var(--nf-color-text-muted);
+}
+.sel__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sel__chev {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: none;
+  stroke: var(--nf-color-text-muted);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--nf-motion-base) var(--nf-motion-easing);
+}
+.sel[data-open='true'] .sel__button,
+.sel__button:focus-visible {
+  border-color: var(--nf-color-text);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--nf-color-accent) 22%, transparent);
+}
+.sel[data-open='true'] .sel__chev {
+  transform: rotate(180deg);
+}
+@media (hover: hover) {
+  .sel__button:hover {
+    border-color: var(--nf-color-text);
+  }
+}
+.sel__list {
+  position: absolute;
+  top: calc(100% + 0.375rem);
+  right: 0;
+  left: 0;
+  z-index: 40;
+  max-height: min(18rem, 50vh);
+  margin: 0;
+  padding: 0.375rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--nf-color-border);
+  border-radius: 0.875rem;
+  background: var(--nf-color-bg);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.12);
+  list-style: none;
+  scroll-margin-block-end: var(--nf-space-5);
+  animation: sel-in var(--nf-motion-fast) var(--nf-motion-easing);
+}
+.sel__list[hidden] {
+  display: none;
+}
+@keyframes sel-in {
+  from {
+    transform: translateY(-0.25rem);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sel__list {
+    animation: none;
+  }
+}
+.sel__list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sel__group + .sel__group {
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
+  border-top: var(--nf-border-hairline) solid var(--nf-color-border);
+}
+.sel__group-label {
+  display: block;
+  padding: var(--nf-space-2) var(--nf-space-3) var(--nf-space-1);
+  color: var(--nf-color-text-muted);
+  font-size: var(--nf-text-xs);
+  font-weight: var(--nf-weight-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.sel__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nf-space-3);
+  min-height: 2.75rem;
+  padding: var(--nf-space-2) var(--nf-space-3);
+  border-radius: 0.625rem;
+  color: var(--nf-color-text);
+  cursor: pointer;
+}
+.sel__option[data-active='true'] {
+  background: var(--nf-color-bg-subtle);
+}
+.sel__text {
+  display: grid;
+  min-width: 0;
+}
+.sel__hint {
+  color: var(--nf-color-text-muted);
+  font-size: var(--nf-text-xs);
+}
+.sel__tick {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: none;
+  stroke: var(--nf-color-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  visibility: hidden;
+}
+.sel__option[aria-selected='true'] {
+  font-weight: var(--nf-weight-semibold);
+}
+.sel__option[aria-selected='true'] .sel__tick {
+  visibility: visible;
+}
+/* office sidebar: property switcher label is for screen readers only */
+.adm-prop .sel__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }

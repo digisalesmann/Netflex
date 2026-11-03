@@ -103,5 +103,21 @@ test('help and recovery screen is reachable from the portal', async ({ page }) =
   await page.getByRole('button', { name: 'Need help?' }).click();
   await expect(page.getByRole('heading', { name: 'Help and recovery' })).toBeVisible();
   await expect(page.getByRole('link', { name: '+2348000000100' })).toBeVisible();
+  // The topic dropdown works with the keyboard: open, move, choose, close.
+  const topic = page.getByRole('combobox', { name: 'What is it about?' });
+  await expect(topic).toHaveText(/Can.t connect/);
+  await topic.focus();
+  await page.keyboard.press('ArrowDown');
+  await expect(topic).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByRole('listbox')).toBeVisible();
+  await expectAccessible(page);
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(topic).toHaveAttribute('aria-expanded', 'false');
+  await expect(topic).toHaveText(/Payment/);
+  await expect(topic).toBeFocused();
+  await page.keyboard.press('s'); // type to jump
+  await expect(topic).toHaveText(/Something else/);
   await expectAccessible(page);
 });

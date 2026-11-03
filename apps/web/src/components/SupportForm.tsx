@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { ApiError, api } from '@/lib/api';
 import { Notice } from './ui';
+import { Select } from './Select';
 
 const CATEGORIES = [
   ['CONNECTIVITY', 'Can’t connect / slow'],
@@ -67,13 +68,12 @@ export function SupportForm({
       {error ? <Notice tone="bad">{error}</Notice> : null}
       <div className="field">
         <label htmlFor="category">What is it about?</label>
-        <select id="category" name="category" defaultValue={defaultCategory}>
-          {CATEGORIES.map(([v, l]) => (
-            <option key={v} value={v}>
-              {l}
-            </option>
-          ))}
-        </select>
+        <Select
+          id="category"
+          name="category"
+          defaultValue={defaultCategory}
+          options={CATEGORIES.map(([value, label]) => ({ value, label }))}
+        />
       </div>
       <div className="field">
         <label htmlFor="subject">Short summary</label>
