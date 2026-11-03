@@ -2,9 +2,8 @@ node_modules/
 dist/
 .next/
 out/
-coverage/
-# The public Coverage page is source, not test-coverage output.
-!apps/web/src/app/(site)/coverage/
+# Test-coverage output only at the root; app folders named "coverage" are source.
+/coverage/
 *.tsbuildinfo
 .env
 .env.*
