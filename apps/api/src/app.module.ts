@@ -43,6 +43,7 @@ import { SessionService } from './auth/session.service.js';
 import { HealthController } from './health/health.controller.js';
 import { InfraModule } from './infra/infra.module.js';
 import { RateLimitService } from './infra/rate-limit.service.js';
+import { OverviewController } from './properties/overview.controller.js';
 import { PropertiesController } from './properties/properties.controller.js';
 import { StaffController } from './staff/staff.controller.js';
 import { TenancyController } from './tenancy/tenancy.controller.js';
@@ -87,6 +88,7 @@ export class AppModule {
         AuthController,
         MeController,
         PropertiesController,
+        OverviewController,
         TenancyController,
         StaffController,
         AuditController,

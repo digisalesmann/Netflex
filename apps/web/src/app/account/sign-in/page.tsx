@@ -61,7 +61,9 @@ export default async function SignInPage({ searchParams }: { searchParams: Param
           </p>
           {q.staff ? (
             <Notice tone="warn">
-              <p>Staff accounts use the admin portal, not the resident account pages.</p>
+              <p>
+                Staff accounts sign in at the <Link href="/admin/sign-in">office sign-in</Link>.
+              </p>
             </Notice>
           ) : null}
           <SignIn next={next} />

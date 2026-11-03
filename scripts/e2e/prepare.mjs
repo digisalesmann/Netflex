@@ -13,6 +13,9 @@ const { createPrismaClient, syncRbac } = require(join(root, 'packages/database/d
 const { grantAccess } = require(join(root, 'packages/core/dist/index.js'));
 const { formatVoucherCode, money } = require(join(root, 'packages/domain/dist/index.js'));
 const { E2E } = require(join(root, 'e2e/env.cjs'));
+const { deriveKey, encryptSecret, generateTotpSecret, hashPassword } = require(
+  join(root, 'packages/security/dist/index.js'),
+);
 
 const url = E2E.DATABASE_URL;
 if (!url.includes('/netflex_test?schema=e2e'))
@@ -39,9 +42,55 @@ const property = await db.property.create({
     supportEmail: 'help@lodge.test',
   },
 });
+// Office staff (test-only credentials, written to e2e/.state/seed.json):
+// an owner with two-step set up, and a new manager who must enrol and change password.
+const STAFF_PASSWORD = 'e2e owner passphrase 4417';
+const mfaSecret = generateTotpSecret();
 const staff = await db.user.create({
-  data: { kind: 'STAFF', email: 'e2e-owner@test.invalid', displayName: 'E2E Owner' },
+  data: {
+    kind: 'STAFF',
+    email: 'e2e-owner@test.invalid',
+    displayName: 'Ada Office',
+    passwordHash: await hashPassword(STAFF_PASSWORD),
+    passwordUpdatedAt: new Date(),
+    mfaEnabled: true,
+    mfaSecretEnc: encryptSecret(deriveKey(E2E.AUTH_SECRET, 'mfa-secret'), mfaSecret),
+  },
 });
+const ownerRole = await db.role.findUniqueOrThrow({ where: { key: 'OWNER' } });
+await db.userRole.create({ data: { userId: staff.id, roleId: ownerRole.id, propertyId: null } });
+const NEW_STAFF_PASSWORD = 'temporary passphrase 9021';
+const PROJECTS = ['desktop', 'mobile'];
+// One owner (two-step already set up) and one new manager per Playwright project,
+// so parallel runs never reuse the same 30-second code.
+const owners = {};
+const managers = {};
+for (const project of PROJECTS) {
+  const secret = generateTotpSecret();
+  const u = await db.user.create({
+    data: {
+      kind: 'STAFF',
+      email: `owner-${project}@test.invalid`,
+      displayName: 'Ada Office',
+      passwordHash: await hashPassword(STAFF_PASSWORD),
+      passwordUpdatedAt: new Date(),
+      mfaEnabled: true,
+      mfaSecretEnc: encryptSecret(deriveKey(E2E.AUTH_SECRET, 'mfa-secret'), secret),
+    },
+  });
+  await db.userRole.create({ data: { userId: u.id, roleId: ownerRole.id, propertyId: null } });
+  owners[project] = { email: u.email, password: STAFF_PASSWORD, mfaSecret: secret };
+  const m = await db.user.create({
+    data: {
+      kind: 'STAFF',
+      email: `manager-${project}@test.invalid`,
+      displayName: 'Bayo Manager',
+      passwordHash: await hashPassword(NEW_STAFF_PASSWORD),
+      mustChangePassword: true,
+    },
+  });
+  managers[project] = { id: m.id, email: m.email, password: NEW_STAFF_PASSWORD };
+}
 const building = await db.building.create({ data: { propertyId: property.id, name: 'Main' } });
 const floor = await db.floor.create({
   data: { propertyId: property.id, buildingId: building.id, label: 'Ground', level: 0 },
@@ -49,6 +98,11 @@ const floor = await db.floor.create({
 const room = await db.room.create({
   data: { propertyId: property.id, floorId: floor.id, label: 'G1' },
 });
+const managerRole = await db.role.findUniqueOrThrow({ where: { key: 'PROPERTY_ADMIN' } });
+for (const m of Object.values(managers))
+  await db.userRole.create({
+    data: { userId: m.id, roleId: managerRole.id, propertyId: property.id },
+  });
 
 async function plan(slug, v) {
   const p = await db.plan.create({ data: { propertyId: property.id, slug, status: 'PUBLISHED' } });
@@ -159,7 +213,17 @@ for (let i = 0; i < 3; i++) {
 mkdirSync(join(root, 'e2e/.state'), { recursive: true });
 writeFileSync(
   join(root, 'e2e/.state/seed.json'),
-  JSON.stringify({ codes, roomId: room.id, propertySlug: property.slug }, null, 2),
+  JSON.stringify(
+    {
+      codes,
+      roomId: room.id,
+      propertySlug: property.slug,
+      owners,
+      managers,
+    },
+    null,
+    2,
+  ),
 );
 await db.$disconnect();
 // Fresh rate-limit counters and queues for each run (e2e Redis database only).
