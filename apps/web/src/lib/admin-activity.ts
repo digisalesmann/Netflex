@@ -112,3 +112,60 @@ export const ROLE_HINT: Record<string, string> = {
   FINANCE: 'Payments, refunds, reports',
   SUPPORT: 'Look-ups and support messages; no refunds',
 };
+
+/** Filter groups for the activity log. */
+export const CATEGORIES = [
+  { id: '', label: 'All' },
+  { id: 'signin', label: 'Sign-ins' },
+  { id: 'residents', label: 'Residents & rooms' },
+  { id: 'catalog', label: 'Plans & vouchers' },
+  { id: 'money', label: 'Payments' },
+  { id: 'network', label: 'Network' },
+  { id: 'admin', label: 'Staff & settings' },
+] as const;
+export type CategoryId = (typeof CATEGORIES)[number]['id'];
+
+export function categoryOf(action: string): Exclude<CategoryId, ''> {
+  if (action.startsWith('auth.')) return 'signin';
+  if (/^(tenant|group|group_authority|room|floor|building)\./.test(action)) return 'residents';
+  if (/^(plan|voucher|entitlement)\./.test(action)) return 'catalog';
+  if (/^(payment|refund|order|reconciliation|charge)\./.test(action)) return 'money';
+  if (/^(network|gateway)\./.test(action)) return 'network';
+  return 'admin';
+}
+
+/** Where an entry's subject lives in the office, when it has a page. */
+export function targetHref(
+  targetType: string | null,
+  targetId: string | null,
+  staffIds: Set<string>,
+): string | null {
+  if (!targetType || !targetId) return null;
+  switch (targetType) {
+    case 'plan':
+      return `/admin/plans/${targetId}`;
+    case 'payment':
+      return `/admin/payments/${targetId}`;
+    case 'support_ticket':
+      return '/admin/support';
+    case 'gateway':
+    case 'network_operation':
+      return '/admin/network';
+    case 'property':
+      return '/admin/settings';
+    case 'user':
+      return staffIds.has(targetId) ? `/admin/staff/${targetId}` : `/admin/residents/${targetId}`;
+    default:
+      return null;
+  }
+}
+
+export const TARGET_LABEL: Record<string, string> = {
+  plan: 'Open plan',
+  payment: 'Open payment',
+  support_ticket: 'Open support',
+  gateway: 'Open network',
+  network_operation: 'Open network',
+  property: 'Open settings',
+  user: 'Open person',
+};
