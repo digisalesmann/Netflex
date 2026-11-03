@@ -38,7 +38,7 @@ test('support and settings: a guest writes in, staff take it and resolve it; lod
   await page.getByRole('link', { name: 'Done' }).click();
   await expect(page.locator('.adm-ticket', { hasText: subject })).toContainText('Resolved');
 
-  // Settings: save wakes up on change, the preview follows, and the public catalog updates.
+  // Settings: save wakes up on change, and the public catalog updates.
   await goTo(page, 'Settings');
   await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible();
   const save = page.getByRole('button', { name: 'Save changes' });
@@ -46,9 +46,6 @@ test('support and settings: a guest writes in, staff take it and resolve it; lod
   const email = page.getByLabel('Email for residents');
   const before = await email.inputValue();
   await email.fill(`desk-${info.project.name}@lodge.test`);
-  await expect(page.getByRole('figure', { name: 'How residents see it' })).toContainText(
-    `desk-${info.project.name}@lodge.test`,
-  );
   await save.click();
   await expect(page.getByText(/^Saved\./)).toBeVisible();
   await expect(save).toBeDisabled();

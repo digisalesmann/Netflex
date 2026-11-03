@@ -27,7 +27,7 @@ const NAV: (NavItem & { need?: Permission })[] = [
     href: '/admin/plans',
     label: 'Plans',
     need: 'plan.read',
-    icon: 'M6 3.5h12v17l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4zM9 8.5h6M9 12h6M9 15.5h3.5',
+    icon: 'M12 3.5 3 8l9 4.5L21 8zM3 12.25l9 4.5 9-4.5M3 16.5l9 4.5 9-4.5',
   },
   {
     href: '/admin/vouchers',
@@ -45,7 +45,7 @@ const NAV: (NavItem & { need?: Permission })[] = [
     href: '/admin/network',
     label: 'Network',
     need: 'network.read',
-    icon: 'M12 18.5h.01M8.5 15a5 5 0 0 1 7 0M5.5 12a9.5 9.5 0 0 1 13 0M2.5 9a14 14 0 0 1 19 0',
+    icon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3.5 12h17M12 3c2.4 2.6 3.7 5.6 3.7 9s-1.3 6.4-3.7 9c-2.4-2.6-3.7-5.6-3.7-9S9.6 5.6 12 3z',
   },
   {
     href: '/admin/support',

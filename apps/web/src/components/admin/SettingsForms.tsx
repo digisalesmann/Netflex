@@ -9,7 +9,7 @@ import { ActionForm, Field, Panel, errorText } from './kit';
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 
-/** Lodge name and contacts, with a live preview and a save button that wakes up on change. */
+/** Lodge name and contacts, with a save button that wakes up on change. */
 export function LodgeProfile({
   propertyId,
   name,
@@ -55,91 +55,75 @@ export function LodgeProfile({
     }
   }
 
-  const preview = (
-    <figure className="adm-preview" aria-label="How residents see it">
-      <figcaption>How residents see it</figcaption>
-      <p className="adm-preview__name">{v.name || 'Your lodge'} Wi-Fi</p>
-      <p className="adm-preview__help">Need a hand?</p>
-      <p className="adm-preview__line">{v.phone || 'No phone'}</p>
-      <p className="adm-preview__line">{v.email || 'No email'}</p>
-    </figure>
-  );
-
   if (!canEdit)
     return (
-      <div className="adm-split">
-        <dl className="adm-facts">
-          <dt>Name</dt>
-          <dd>{name}</dd>
-          <dt>Phone</dt>
-          <dd>{supportPhone ?? 'Not set'}</dd>
-          <dt>Email</dt>
-          <dd>{supportEmail ?? 'Not set'}</dd>
-        </dl>
-        {preview}
-      </div>
+      <dl className="adm-facts">
+        <dt>Name</dt>
+        <dd>{name}</dd>
+        <dt>Phone</dt>
+        <dd>{supportPhone ?? 'Not set'}</dd>
+        <dt>Email</dt>
+        <dd>{supportEmail ?? 'Not set'}</dd>
+      </dl>
     );
 
   return (
-    <div className="adm-split">
-      <form className="adm-form" onSubmit={(e) => void submit(e)} noValidate>
-        <Field label="Lodge name">
-          <input
-            name="name"
-            required
-            minLength={2}
-            maxLength={120}
-            value={v.name}
-            onChange={(e) => setV({ ...v, name: e.target.value })}
-          />
-        </Field>
-        <Field label="Phone for residents" hint="Help pages, receipts, the Wi-Fi sign-in page.">
-          <input
-            name="supportPhone"
-            type="tel"
-            inputMode="tel"
-            maxLength={32}
-            value={v.phone}
-            onChange={(e) => setV({ ...v, phone: e.target.value })}
-            placeholder="+234 704 033 2279"
-          />
-        </Field>
-        <Field label="Email for residents" hint="Also where replies to account emails go.">
-          <input
-            name="supportEmail"
-            type="email"
-            inputMode="email"
-            autoCapitalize="none"
-            spellCheck={false}
-            value={v.email}
-            onChange={(e) => setV({ ...v, email: e.target.value })}
-          />
-        </Field>
-        <div className="adm-form__bar">
-          <button className="adm-btn adm-btn--solid" type="submit" disabled={!dirty || busy}>
-            {busy ? 'Saving…' : 'Save changes'}
+    <form className="adm-form" onSubmit={(e) => void submit(e)} noValidate>
+      <Field label="Lodge name">
+        <input
+          name="name"
+          required
+          minLength={2}
+          maxLength={120}
+          value={v.name}
+          onChange={(e) => setV({ ...v, name: e.target.value })}
+        />
+      </Field>
+      <Field label="Phone for residents" hint="Help pages, receipts, the Wi-Fi sign-in page.">
+        <input
+          name="supportPhone"
+          type="tel"
+          inputMode="tel"
+          maxLength={32}
+          value={v.phone}
+          onChange={(e) => setV({ ...v, phone: e.target.value })}
+          placeholder="+234 704 033 2279"
+        />
+      </Field>
+      <Field label="Email for residents" hint="Also where replies to account emails go.">
+        <input
+          name="supportEmail"
+          type="email"
+          inputMode="email"
+          autoCapitalize="none"
+          spellCheck={false}
+          value={v.email}
+          onChange={(e) => setV({ ...v, email: e.target.value })}
+        />
+      </Field>
+      <div className="adm-form__bar">
+        <button className="adm-btn adm-btn--solid" type="submit" disabled={!dirty || busy}>
+          {busy ? 'Saving…' : 'Save changes'}
+        </button>
+        {dirty ? (
+          <button
+            type="button"
+            className="adm-btn adm-btn--quiet"
+            onClick={() => {
+              setV(saved);
+              setMsg(null);
+            }}
+          >
+            Discard
           </button>
-          {dirty ? (
-            <button
-              type="button"
-              className="adm-btn adm-btn--quiet"
-              onClick={() => {
-                setV(saved);
-                setMsg(null);
-              }}
-            >
-              Discard
-            </button>
-          ) : null}
-          {msg ? (
-            <span className="adm-inline__msg" data-ok={msg.ok} role={msg.ok ? 'status' : 'alert'}>
-              {msg.text}
-            </span>
-          ) : null}
-        </div>
-      </form>
-      {preview}
-    </div>
+        ) : null}
+        {msg ? (
+          <span className="adm-inline__msg" data-ok={msg.ok} role={msg.ok ? 'status' : 'alert'}>
+            {msg.text}
+          </span>
+        ) : null}
+      </div>
+    </form>
   );
 }
 

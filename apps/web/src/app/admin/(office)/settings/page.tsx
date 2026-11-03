@@ -55,7 +55,7 @@ export default async function SettingsPage() {
                 {canEdit ? '' : ' Only managers and owners can change it.'}
               </p>
             </div>
-            <div className="adm-setting__body adm-setting__body--wide">
+            <div className="adm-setting__body">
               <LodgeProfile
                 propertyId={property.id}
                 name={property.name}
