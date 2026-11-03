@@ -9,7 +9,8 @@
     "emitDecoratorMetadata": true,
     "types": ["node"],
     "module": "ESNext",
-    "moduleResolution": "Bundler"
+    "moduleResolution": "Bundler",
+    "allowJs": true
   },
   "include": [
     "packages/*/src/**/*.test.ts",

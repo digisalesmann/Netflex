@@ -22,6 +22,7 @@ import { OrdersService } from './orders/orders.service.js';
 import { AccessService } from './vouchers/access.service.js';
 import { DefaultAdapterRegistry, NetworkEngine, PaymentEngine } from '@netflex/core';
 import { NetworkController } from './network/network.controller.js';
+import { LinkController } from './network/link.controller.js';
 import { FakePaymentProvider, PaystackProvider, type PaymentProvider } from '@netflex/payments';
 import { AdminPaymentsController } from './payments/admin-payments.controller.js';
 import { PaymentsService, deliveryKey } from './payments/payments.service.js';
@@ -102,6 +103,7 @@ export class AppModule {
         AdminAccessController,
         MyAccessController,
         NetworkController,
+        LinkController,
         PortalController,
         SupportController,
         SupportAdminController,
@@ -127,7 +129,9 @@ export class AppModule {
         LifecycleService,
         {
           provide: ADAPTER_REGISTRY,
-          useFactory: () => new DefaultAdapterRegistry(config.NETWORK_ADAPTER, config.NETFLEX_ENV),
+          inject: [PRISMA],
+          useFactory: (prisma: PrismaClient) =>
+            new DefaultAdapterRegistry(config.NETWORK_ADAPTER, config.NETFLEX_ENV, prisma),
         },
         {
           provide: NETWORK_ENGINE,

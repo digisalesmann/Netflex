@@ -25,17 +25,18 @@ Tick each line and write the date and who checked it. Paid Wi-Fi is switched on 
 - [ ] Office → Settings: check the lodge phone and email residents will see
 - [ ] Brief the office staff with the [office guide](../runbooks/office-guide.md)
 
-## C. On-site Wi-Fi work (Phase 6, paused by the owner)
+## C. On-site Wi-Fi work (Phase 6)
 
-The equipment: Starlink router → ONV PoE switch → 3 TP-Link Omada EAP115 access points (one per floor).
+The software is built and tested. The steps are in [omada-setup.md](../network/omada-setup.md).
 
-- [ ] Office laptop on a cable to the switch, set never to sleep, on a surge protector
-- [ ] Free Omada Software Controller installed on the laptop; the three EAP115s adopted
-- [ ] Guest network with the Omada portal set to send people to `https://netflexhq.com/connect`
-- [ ] The "lodge link" program on the laptop connected to netflexhq.com (the site has no public IP, so the laptop connects out)
-- [ ] `NETWORK_ADAPTER` set for Omada on Railway; Office → Network shows the equipment as healthy
-- [ ] On-site proof of concept passed ([poc-test-plan.md](../network/poc-test-plan.md)): a code turns Wi-Fi on, expiry turns it off, a second device beyond the plan's limit is refused, speed is fine in every hallway (gates G4–G7)
-- [ ] Break-glass: staff can still reach the Omada controller and Starlink app if netflexhq.com or the internet is down (gate G7)
+- [ ] Office laptop on a cable to the switch, set never to sleep, on a surge protector, with Node.js installed
+- [ ] Omada Software Controller installed; the three EAP115 v4 adopted; site "ND Lodge"
+- [ ] "ND Lodge Wi-Fi" (open, with the portal) and "ND Lodge Staff" (hidden, password) networks
+- [ ] Hotspot operator `netflex-link` and Open API client created
+- [ ] Portal set to the address from Office → Network, with the Pre-Authentication Access list
+- [ ] Lodge link installed and paired; Office → Network shows it **Online** and the controller **Working**
+- [ ] Time format and early switch-off confirmed (omada-setup.md step 7)
+- [ ] On-site proof of concept passed ([poc-test-plan.md](../network/poc-test-plan.md)) (gates G4–G7)
 
 ## D. Switching on paid Wi-Fi
 

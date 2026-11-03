@@ -1,24 +1,39 @@
 import { redirect } from 'next/navigation';
+import { CopyButton } from '@/components/admin/CopyButton';
 import {
+  AddOmada,
   CheckGateway,
   CheckNetwork,
   GatewaySwitch,
+  PairLink,
   RetryJob,
+  UnpairLink,
 } from '@/components/admin/NetworkActions';
 import { adminApi, allowed, currentProperty, requireStaff } from '@/lib/admin';
 import { when } from '@/lib/admin-payments';
+import { site } from '@/lib/site';
 
 export const metadata = { title: 'Network' };
 
 interface Gateway {
   id: string;
   name: string;
-  vendor: 'MIKROTIK' | 'UNIFI' | 'OTHER' | 'FAKE';
+  vendor: 'MIKROTIK' | 'OMADA' | 'UNIFI' | 'OTHER' | 'FAKE';
   model: string | null;
   firmware: string | null;
   status: 'UNVERIFIED' | 'HEALTHY' | 'DEGRADED' | 'UNREACHABLE' | 'DISABLED';
   lastHealthAt: string | null;
   lastHealthyAt: string | null;
+  link: {
+    paired: boolean;
+    online: boolean;
+    lastSeenAt: string | null;
+    agentVersion: string | null;
+    controllerVersion: string | null;
+    controllerOk: boolean;
+    detail: string | null;
+    features: { unauthorize?: boolean; listClients?: boolean } | null;
+  } | null;
 }
 interface Session {
   id: string;
@@ -43,7 +58,44 @@ const GW_STATUS: Record<Gateway['status'], { label: string; tone: string }> = {
   UNVERIFIED: { label: 'Not checked yet', tone: 'info' },
   DISABLED: { label: 'Turned off', tone: 'muted' },
 };
-const VENDOR = { MIKROTIK: 'MikroTik', UNIFI: 'UniFi', OTHER: 'Other', FAKE: 'Simulated (test)' };
+const VENDOR = {
+  MIKROTIK: 'MikroTik',
+  OMADA: 'TP-Link Omada',
+  UNIFI: 'UniFi',
+  OTHER: 'Other',
+  FAKE: 'Simulated (test)',
+};
+
+function linkState(l: Gateway['link']): { label: string; tone: string; line: string } {
+  if (!l?.paired)
+    return {
+      label: 'Not paired',
+      tone: 'warn',
+      line: 'Install the lodge link on the lodge computer and pair it.',
+    };
+  if (!l.online)
+    return {
+      label: 'Offline',
+      tone: 'bad',
+      line: l.lastSeenAt
+        ? `Last heard from ${when(l.lastSeenAt)}. Is the lodge computer on and online?`
+        : 'Hasn’t checked in yet.',
+    };
+  if (!l.controllerOk)
+    return {
+      label: 'Controller problem',
+      tone: 'bad',
+      line: l.detail ?? 'The controller isn’t answering the link.',
+    };
+  return {
+    label: 'Online',
+    tone: 'ok',
+    line: `Omada ${l.controllerVersion ?? ''} · link ${l.agentVersion ?? ''}`.replace(
+      /\s+·/g,
+      ' ·',
+    ),
+  };
+}
 const JOB: Record<Job['type'], string> = {
   ACTIVATE: 'Switch a plan on',
   APPLY_POLICY: 'Update a plan’s limits',
@@ -86,7 +138,12 @@ export default async function NetworkPage() {
             The Wi-Fi equipment, who&apos;s online, and the instructions the system sends it.
           </p>
         </div>
-        {canOperate && gateways.length ? <CheckNetwork propertyId={property.id} /> : null}
+        <span className="adm-gw__actions">
+          {canOperate && !gateways.some((g) => g.vendor === 'OMADA') ? (
+            <AddOmada propertyId={property.id} />
+          ) : null}
+          {canOperate && gateways.length ? <CheckNetwork propertyId={property.id} /> : null}
+        </span>
       </header>
 
       {!gateways.length ? (
@@ -138,6 +195,9 @@ export default async function NetworkPage() {
                       </span>
                     ) : null}
                   </span>
+                  {g.vendor === 'OMADA' ? (
+                    <LinkRow g={g} propertyId={property.id} canOperate={canOperate} />
+                  ) : null}
                 </li>
               );
             })}
@@ -209,5 +269,58 @@ export default async function NetworkPage() {
         </section>
       </div>
     </>
+  );
+}
+
+/** The lodge link under an Omada controller: is it online, what can it do, how to set Omada up. */
+function LinkRow({
+  g,
+  propertyId,
+  canOperate,
+}: {
+  g: Gateway;
+  propertyId: string;
+  canOperate: boolean;
+}) {
+  const st = linkState(g.link);
+  const portal = new URL(`/connect/omada/${g.id}`, site.siteUrl).toString();
+  const f = g.link?.features ?? {};
+  return (
+    <div className="adm-link">
+      <dl className="adm-facts">
+        <dt>Lodge link</dt>
+        <dd>
+          <span className="adm-tag" data-tone={st.tone}>
+            {st.label}
+          </span>{' '}
+          <span className="adm-sub">{st.line}</span>
+        </dd>
+        {g.link?.paired && g.link.online ? (
+          <>
+            <dt>Switch off early</dt>
+            <dd>
+              {f.unauthorize
+                ? 'Yes'
+                : 'Not set up: plans end on time, but refunds can’t cut access early'}
+            </dd>
+            <dt>See who’s online</dt>
+            <dd>{f.listClients ? 'Yes' : 'Not set up (Omada Open API)'}</dd>
+          </>
+        ) : null}
+        <dt>Omada portal address</dt>
+        <dd>
+          <span className="adm-qr__row adm-link__url">
+            <code>{portal}</code>
+            <CopyButton value={portal} label="portal address" />
+          </span>
+        </dd>
+      </dl>
+      {canOperate ? (
+        <span className="adm-gw__actions adm-link__actions">
+          <PairLink propertyId={propertyId} gatewayId={g.id} paired={!!g.link?.paired} />
+          {g.link?.paired ? <UnpairLink propertyId={propertyId} gatewayId={g.id} /> : null}
+        </span>
+      ) : null}
+    </div>
   );
 }

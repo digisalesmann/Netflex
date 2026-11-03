@@ -142,6 +142,7 @@ enum GroupRole {
 
 enum GatewayVendor {
   MIKROTIK
+  OMADA
   UNIFI
   OTHER
   FAKE
@@ -554,9 +555,102 @@ model Gateway {
   zones        NetworkZone[]
   sessions     NetworkSession[]
   operations   NetworkOperation[]
+  link         LodgeLink?
+  linkCommands LinkCommand[]
+  portalSeen   PortalClient[]
+  linkGrants   LinkGrant[]
 
   @@unique([propertyId, name])
   @@map("gateways")
+}
+
+/// The small program on the lodge's own computer that talks to a local controller
+/// (e.g. Omada) on our behalf. It connects OUT to us, because the lodge has no public IP.
+/// Only hashes of the pairing code and the link token are stored.
+model LodgeLink {
+  id                String    @id @default(uuid()) @db.Uuid
+  gatewayId         String    @unique @db.Uuid
+  pairingCodeHash   String?   @db.VarChar(64)
+  pairingExpiresAt  DateTime? @db.Timestamptz(3)
+  tokenHash         String?   @unique @db.VarChar(64)
+  pairedAt          DateTime? @db.Timestamptz(3)
+  lastSeenAt        DateTime? @db.Timestamptz(3)
+  agentVersion      String?   @db.VarChar(40)
+  controllerVersion String?   @db.VarChar(40)
+  controllerOk      Boolean   @default(false)
+  /// Short, safe status line from the link (no addresses or credentials).
+  detail            String?   @db.VarChar(200)
+  /// What the link says it can do (e.g. switch devices off early, list clients).
+  features          Json?
+  createdAt         DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(3)
+
+  gateway Gateway @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+
+  @@map("lodge_links")
+}
+
+enum LinkCommandStatus {
+  PENDING
+  SENT
+  DONE
+  FAILED
+  EXPIRED
+}
+
+/// One instruction for a lodge link, picked up when it next checks in.
+model LinkCommand {
+  id        String            @id @default(uuid()) @db.Uuid
+  gatewayId String            @db.Uuid
+  kind      String            @db.VarChar(40)
+  payload   Json
+  status    LinkCommandStatus @default(PENDING)
+  result    Json?
+  error     String?           @db.VarChar(200)
+  createdAt DateTime          @default(now()) @db.Timestamptz(3)
+  sentAt    DateTime?         @db.Timestamptz(3)
+  doneAt    DateTime?         @db.Timestamptz(3)
+
+  gateway Gateway @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+
+  @@index([gatewayId, status, createdAt])
+  @@map("link_commands")
+}
+
+/// Where a device was last seen joining the captive network (from the controller's
+/// portal redirect). Needed to switch it on, since Omada asks for the access point and band.
+model PortalClient {
+  id         String   @id @default(uuid()) @db.Uuid
+  gatewayId  String   @db.Uuid
+  macAddress String   @db.VarChar(17)
+  apMac      String   @db.VarChar(17)
+  ssidName   String   @db.VarChar(64)
+  radioId    Int
+  site       String   @db.VarChar(64)
+  seenAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  gateway Gateway @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+
+  @@unique([gatewayId, macAddress])
+  @@map("portal_clients")
+}
+
+/// What we last asked a link-managed controller to enforce for an entitlement, and what
+/// the controller acknowledged, so devices removed from a plan can be switched off.
+model LinkGrant {
+  entitlementId String    @id @db.Uuid
+  gatewayId     String    @db.Uuid
+  state         String    @db.VarChar(12)
+  /// Devices the controller acknowledged as switched on.
+  devices       String[]  @db.VarChar(17)
+  expiresAt     DateTime? @db.Timestamptz(3)
+  maxSessions   Int
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+
+  gateway Gateway @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+
+  @@index([gatewayId])
+  @@map("link_grants")
 }
 
 model AccessPoint {

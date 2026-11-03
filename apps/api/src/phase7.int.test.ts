@@ -240,7 +240,7 @@ describe('development simulators', () => {
       .expect(302);
     const u = new URL(r.headers.location as string);
     expect(u.pathname).toBe('/connect');
-    expect(await gw.lookupClient(u.searchParams.get('ip') as string)).toEqual({
+    expect(await gw.lookupClient({ ip: u.searchParams.get('ip') as string, mac: '' })).toEqual({
       macAddress: u.searchParams.get('mac'),
     });
   });

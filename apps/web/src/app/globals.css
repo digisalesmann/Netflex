@@ -8974,3 +8974,44 @@ summary {
 .adm-setting__body .adm-sub.adm-after {
   margin-top: var(--nf-space-4);
 }
+/* office: network → lodge link */
+.adm-gw:has(.adm-link) {
+  flex-wrap: wrap;
+}
+.adm-link {
+  flex-basis: 100%;
+  display: grid;
+  gap: var(--nf-space-3);
+  padding-top: var(--nf-space-3);
+  border-top: 1px dashed var(--nf-color-border);
+}
+.adm-link .adm-sub {
+  margin: 0;
+}
+.adm-link__url code {
+  overflow-wrap: anywhere;
+}
+.adm-link__actions {
+  justify-content: flex-start;
+}
+.adm-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--nf-space-4);
+}
+.adm-pair .adm-qr__row,
+.adm-link__url {
+  justify-content: start;
+}
+.adm-pair .adm-qr__row code,
+.adm-link__url code {
+  width: auto;
+}
+.adm-pair__code {
+  font-size: var(--nf-text-2xl);
+  font-weight: var(--nf-weight-semibold);
+  letter-spacing: 0.12em;
+}
+.adm-pair .adm-sub code {
+  overflow-wrap: anywhere;
+}

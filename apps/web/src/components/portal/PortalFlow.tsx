@@ -12,9 +12,23 @@ import { Notice, Status } from '../ui';
 
 export interface PortalCtx {
   gw: string;
-  ip: string;
   mac: string;
+  /** MikroTik-style gateways send the device's IP. */
+  ip?: string;
+  /** Omada sends the access point, network name, band and site. */
+  ap?: string;
+  ssid?: string;
+  radio?: number;
+  site?: string;
 }
+/** The sign-in page address for this device, to come back to it (e.g. after paying). */
+export function portalHref(c: PortalCtx): string {
+  const enc = encodeURIComponent;
+  if (c.ap && c.ssid && c.site && c.radio !== undefined)
+    return `/connect/omada/${enc(c.gw)}?clientMac=${enc(c.mac)}&apMac=${enc(c.ap)}&ssidName=${enc(c.ssid)}&radioId=${c.radio}&site=${enc(c.site)}`;
+  return `/connect?gw=${enc(c.gw)}&ip=${enc(c.ip ?? '')}&mac=${enc(c.mac)}`;
+}
+
 interface Property {
   name: string;
   slug: string;

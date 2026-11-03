@@ -29,7 +29,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['scripts/**', '**/scripts/**', '**/*.config.*'],
+    files: ['scripts/**', '**/scripts/**', '**/*.config.*', 'apps/lodge-link/**'],
     rules: { 'no-console': 'off' },
   },
 );

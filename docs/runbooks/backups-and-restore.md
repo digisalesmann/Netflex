@@ -18,7 +18,7 @@ Railway can back up the database volume on a schedule. **The owner switches this
 2. **Edit schedule** → tick **Daily** and **Weekly** → Save.
 3. Check that a backup appears the next day.
 
-Daily backups are kept for 6 days, weekly ones for 1 month. If the Backups tab says the plan doesn't include backups, upgrade the Railway plan; it's the cheapest insurance this system has.
+Daily backups are kept for 6 days, weekly ones for 27 days. If the Backups tab says the plan doesn't include backups, upgrade the Railway plan; it's the cheapest insurance this system has.
 
 ## 2. Off-site copy (monthly, and before risky changes)
 

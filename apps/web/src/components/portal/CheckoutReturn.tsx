@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api, store } from '@/lib/api';
 import { Notice, Status } from '../ui';
-import type { PortalCtx } from './PortalFlow';
+import { portalHref, type PortalCtx } from './PortalFlow';
 
 interface OrderView {
   orderId: string;
@@ -233,14 +233,7 @@ export function CheckoutReturn({ orderIdFromUrl }: { orderIdFromUrl: string | nu
             Paystack reported that the payment wasn&apos;t completed. You have not been charged for
             this attempt.
           </p>
-          <a
-            className="button"
-            href={
-              saved?.ctx
-                ? `/connect?gw=${saved.ctx.gw}&ip=${saved.ctx.ip}&mac=${saved.ctx.mac}`
-                : '/plans'
-            }
-          >
+          <a className="button" href={saved?.ctx ? portalHref(saved.ctx) : '/plans'}>
             Try again
           </a>
         </>

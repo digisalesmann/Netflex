@@ -17,7 +17,7 @@ Validated at startup by `packages/config` (zod). Missing or invalid values stop 
 | `PAYMENT_PROVIDER`       | yes         | `paystack`, `fake`                             | `fake` only in development/test                                                                   |
 | `PAYSTACK_SECRET_KEY`    | if paystack | `sk_test_…` / `sk_live_…`                      | Live key required in production; test key required elsewhere                                      |
 | `PAYSTACK_BASE_URL`      | no          | `https://api.paystack.co`                      |                                                                                                   |
-| `NETWORK_ADAPTER`        | no          | `none` (default), `fake`, `mikrotik`           | `mikrotik` is not live-verified (ADR-0004)                                                        |
+| `NETWORK_ADAPTER`        | no          | `none` (default), `omada`, `fake`, `mikrotik`  | `omada` works through the lodge link (apps/lodge-link); `mikrotik` is not implemented             |
 | `EMAIL_PROVIDER`         | no          | `none` (default), `resend`, `fake`             | Sends sign-in codes by email. `fake` only in development/test                                     |
 | `RESEND_API_KEY`         | if resend   | `re_…`                                         | Secret. Create at resend.com → API Keys (sending access only)                                     |
 | `EMAIL_FROM`             | if resend   | `ND Lodge Wi-Fi <wifi@yourdomain.com>`         | Must use a domain verified in Resend                                                              |

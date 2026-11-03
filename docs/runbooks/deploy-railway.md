@@ -21,25 +21,25 @@ visitor ─► Cloudflare ─► web (netflexhq.com) ─► api (private) ─►
 
 Set these on **api** and **worker** (Railway's "shared variables" saves typing them twice). Values in `${{ }}` are Railway references, typed as shown.
 
-| Variable              | Value                                                                  |
-| --------------------- | ---------------------------------------------------------------------- |
-| `NETFLEX_ENV`         | `production`                                                           |
-| `DATABASE_URL`        | `${{Postgres.DATABASE_URL}}`                                           |
-| `REDIS_URL`           | `${{Redis.REDIS_URL}}`                                                 |
-| `API_PORT`            | `4000` (api only)                                                      |
-| `TRUST_PROXY`         | `fd00::/8` (Railway's private network, where the web proxy calls from) |
-| `PUBLIC_WEB_URL`      | `https://netflexhq.com`                                                |
-| `PUBLIC_API_URL`      | `https://netflexhq.com`                                                |
-| `AUTH_SECRET`         | new random value, see below. **Never reuse the local one.**            |
-| `VOUCHER_PEPPER`      | new random value                                                       |
-| `PAYMENT_PROVIDER`    | `paystack`                                                             |
-| `PAYSTACK_SECRET_KEY` | your `sk_live_…` key (production refuses test keys)                    |
-| `EMAIL_PROVIDER`      | `resend`                                                               |
-| `RESEND_API_KEY`      | a **new** Resend key with sending access, just for production          |
-| `EMAIL_FROM`          | `ND Lodge Wi-Fi <wifi@netflexhq.com>`                                  |
-| `EMAIL_REPLY_TO`      | `networkflex24@gmail.com`                                              |
-| `NETWORK_ADAPTER`     | `none` (until the router passes the on-site test)                      |
-| `PAID_ACCESS_ENABLED` | `false` (see section 6)                                                |
+| Variable              | Value                                                                         |
+| --------------------- | ----------------------------------------------------------------------------- |
+| `NETFLEX_ENV`         | `production`                                                                  |
+| `DATABASE_URL`        | `${{Postgres.DATABASE_URL}}`                                                  |
+| `REDIS_URL`           | `${{Redis.REDIS_URL}}`                                                        |
+| `API_PORT`            | `4000` (api only)                                                             |
+| `TRUST_PROXY`         | `fd00::/8` (Railway's private network, where the web proxy calls from)        |
+| `PUBLIC_WEB_URL`      | `https://netflexhq.com`                                                       |
+| `PUBLIC_API_URL`      | `https://netflexhq.com`                                                       |
+| `AUTH_SECRET`         | new random value, see below. **Never reuse the local one.**                   |
+| `VOUCHER_PEPPER`      | new random value                                                              |
+| `PAYMENT_PROVIDER`    | `paystack`                                                                    |
+| `PAYSTACK_SECRET_KEY` | your `sk_live_…` key (production refuses test keys)                           |
+| `EMAIL_PROVIDER`      | `resend`                                                                      |
+| `RESEND_API_KEY`      | a **new** Resend key with sending access, just for production                 |
+| `EMAIL_FROM`          | `ND Lodge Wi-Fi <wifi@netflexhq.com>`                                         |
+| `EMAIL_REPLY_TO`      | `networkflex24@gmail.com`                                                     |
+| `NETWORK_ADAPTER`     | `omada` (TP-Link Omada through the lodge link, `docs/network/omada-setup.md`) |
+| `PAID_ACCESS_ENABLED` | `false` (see section 6)                                                       |
 
 Generate each secret on your laptop: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Paste secrets only into Railway, never into chat, email or the repo.
 

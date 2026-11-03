@@ -19,6 +19,8 @@ const FORWARD_REQUEST = [
   'user-agent',
   'accept',
   'x-paystack-signature',
+  // The lodge link's own token (it has no cookies).
+  'x-netflex-link',
 ];
 const FORWARD_RESPONSE = [
   'content-type',

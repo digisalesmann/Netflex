@@ -4,3 +4,4 @@ export * from './payments.js';
 export * from './entitlements.js';
 export * from './network.js';
 export * from './adapter-registry.js';
+export * from './lodge-link.js';

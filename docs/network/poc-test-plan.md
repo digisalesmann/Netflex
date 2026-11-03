@@ -1,18 +1,22 @@
 # Gateway Proof-of-Concept Test Plan (spec §11.4)
 
-Status: **not run — blocked on hardware.** To be executed on the selected physical gateway before any real adapter is enabled. Record the results in `docs/test-results/<date>-gateway-poc.md`.
+Status: **not run yet.** The software is ready (Omada adapter, lodge link, tested against a simulated Omada controller); this plan runs on site once [omada-setup.md](omada-setup.md) is done. Record the results in `docs/test-results/<date>-gateway-poc.md`.
 
 ## Setup for this site
 
 ```
-Starlink Mini (Bypass Mode ON) ──Ethernet── Gateway (captive portal + NetFlex adapter)
-                                              ├── switch ── access points ── rooms/floors
-                                              └── WireGuard/VPN to NetFlex cloud (Residential = CGNAT, no inbound)
+Starlink router ── ONV PoE switch ──┬── 3× TP-Link EAP115 v4 (one per floor)
+                                    └── office laptop: Omada Software Controller + NetFlex lodge link
+                                          └── HTTPS out to netflexhq.com (no public IP needed)
 ```
 
-- The Mini's built-in Wi-Fi is switched off by Bypass Mode; the gateway serves all clients.
-- The gateway needs **its own power**: the Mini's Ethernet port supplies no PoE.
-- Management path: the gateway dials **out** to the NetFlex VPN hub (ADR-0004). With Business Priority's reported public IPv4 this can be simplified, but management is still never exposed publicly.
+What this hardware can and can't do (shown in Office → Network):
+
+- **Can:** captive portal, switch a device on for exactly the plan's time (Omada ends it itself, even if the internet drops), one device per authorization, health status.
+- **Needs the Omada Open API set up:** switching a device off early (refunds, removing a device), seeing who's online.
+- **Can't (on controller 5.x):** speed limits per plan, room/floor zones. The live plans use neither. Controller 6.2.10+ accepts speed limits; add them later if wanted.
+
+Omada-specific checks, before the tests below: the **time format** (a 1-day code shows ~24 h in Authorized Clients) and the **unauthorize path**, as in omada-setup.md step 7.
 
 ## Record for every run
 

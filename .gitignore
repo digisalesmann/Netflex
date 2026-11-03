@@ -19,3 +19,6 @@ e2e/.state/
 
 # Database backups hold personal data; never commit them.
 /backups/
+
+# Built from apps/lodge-link during the build.
+/apps/web/public/downloads/lodge-link.zip

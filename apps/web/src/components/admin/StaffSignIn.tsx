@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError, api } from '@/lib/api';
 import { Notice } from '../ui';
+import { CopyButton } from './CopyButton';
 
 export type Step = 'login' | 'enroll' | 'verify' | 'password';
 type Next = 'DONE' | 'MFA_ENROLL' | 'MFA_VERIFY' | 'PASSWORD_CHANGE';
@@ -26,43 +27,6 @@ const TITLES: Record<Step, [string, string]> = {
   ],
   password: ['Choose a new password', 'Your account was set up with a temporary password.'],
 };
-
-/** Copies the setup key (without spaces) and confirms with a tick for a moment. */
-function CopyKey({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    if (!copied) return;
-    const t = window.setTimeout(() => setCopied(false), 2000);
-    return () => window.clearTimeout(t);
-  }, [copied]);
-  return (
-    <button
-      type="button"
-      className="adm-qr__copy"
-      data-copied={copied}
-      onClick={() =>
-        void navigator.clipboard
-          .writeText(value)
-          .then(() => setCopied(true))
-          .catch(() => null)
-      }
-    >
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path
-          d={
-            copied
-              ? 'M5 12.5 10 17.5 19 7'
-              : 'M8.5 8.5V5.5A1.5 1.5 0 0 1 10 4h8.5A1.5 1.5 0 0 1 20 5.5V14a1.5 1.5 0 0 1-1.5 1.5h-3M5.5 8.5H14A1.5 1.5 0 0 1 15.5 10v8.5A1.5 1.5 0 0 1 14 20H5.5A1.5 1.5 0 0 1 4 18.5V10a1.5 1.5 0 0 1 1.5-1.5z'
-          }
-        />
-      </svg>
-      <span className="adm-sr">{copied ? 'Key copied' : 'Copy key'}</span>
-      <span className="adm-sr" aria-live="polite">
-        {copied ? 'Copied' : ''}
-      </span>
-    </button>
-  );
-}
 
 export function StaffSignIn({ start, next }: { start: Step; next: string }) {
   const [step, setStep] = useState<Step>(start);
@@ -192,7 +156,7 @@ export function StaffSignIn({ start, next }: { start: Step; next: string }) {
                         <span key={half}>{half.replace(/(.{4})/g, '$1 ').trim()}</span>
                       ))}
                     </code>
-                    <CopyKey value={secret.text} />
+                    <CopyButton value={secret.text} label="key" />
                   </div>
                 </>
               ) : (

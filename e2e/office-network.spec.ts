@@ -41,3 +41,37 @@ test('network: equipment status, checks, turn off and on, devices online', async
   await page.getByRole('dialog').getByRole('button', { name: 'Turn on' }).click();
   await expect(gw).not.toContainText('Turned off');
 });
+
+test('network: add the Omada controller and make a lodge link pairing code', async ({
+  page,
+}, info) => {
+  await signInOwner(page, info.project.name);
+  await goTo(page, 'Network');
+  await expect(page.getByRole('heading', { name: 'Equipment' })).toBeVisible();
+  const add = page.getByRole('button', { name: 'Add Omada controller' });
+  // Desktop and phone runs share one database; the first run adds it.
+  if (await add.isVisible()) {
+    await add.click();
+    await page.getByRole('dialog').getByLabel('Equipment (optional)').fill('3× EAP115 v4');
+    await page.getByRole('dialog').getByRole('button', { name: 'Add controller' }).click();
+  }
+  const omada = page.locator('.adm-gw', { hasText: 'TP-Link Omada' });
+  await expect(omada).toContainText('Not paired');
+  await expect(omada.locator('code')).toContainText(/\/connect\/omada\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole('button', { name: 'Add Omada controller' })).toHaveCount(0);
+
+  await omada.getByRole('button', { name: /Pair (lodge link|again)/ }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('link', { name: 'download it here' })).toHaveAttribute(
+    'href',
+    '/downloads/lodge-link.zip',
+  );
+  await dialog.getByRole('button', { name: 'Make a pairing code' }).click();
+  await expect(dialog.locator('.adm-pair__code')).toHaveText(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+  await expect(dialog.getByRole('button', { name: 'Copy pairing code' })).toBeVisible();
+  await expectAccessible(page);
+  await dialog.getByRole('button', { name: 'Done' }).click();
+  await expectNoHorizontalOverflow(page);
+  const zip = await page.request.get('/downloads/lodge-link.zip');
+  expect(zip.status()).toBe(200);
+});

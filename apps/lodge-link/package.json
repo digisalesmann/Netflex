@@ -1,0 +1,16 @@
+{
+  "name": "@netflex/lodge-link",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Runs on the lodge computer: connects the local Omada controller to NetFlex. No dependencies beyond Node.js.",
+  "type": "module",
+  "bin": {
+    "netflex-lodge-link": "./lodge-link.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "check": "node lodge-link.mjs check"
+  }
+}

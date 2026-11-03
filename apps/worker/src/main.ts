@@ -55,7 +55,7 @@ async function main(): Promise<void> {
     voucher: { pepper: config.VOUCHER_PEPPER, pepperVersion: config.VOUCHER_PEPPER_VERSION },
     deliveryKey: deriveDeliveryKey(config.VOUCHER_PEPPER),
   });
-  const registry = new DefaultAdapterRegistry(config.NETWORK_ADAPTER, config.NETFLEX_ENV);
+  const registry = new DefaultAdapterRegistry(config.NETWORK_ADAPTER, config.NETFLEX_ENV, prisma);
   if (registry.fake)
     log.warn('NETWORK_ADAPTER=fake: simulated gateway only; nothing is enforced on a real network');
   const network = new NetworkEngine(prisma, registry);

@@ -98,6 +98,12 @@ export type OperationErrorCode = (typeof OPERATION_ERROR_CODES)[number];
 export type OperationResult =
   { ok: true } | { ok: false; code: OperationErrorCode; retryable: boolean; detail: string };
 
+export interface ClientQuery {
+  ip: string | null;
+  /** Canonical MAC the redirect claimed. */
+  mac: string;
+}
+
 export interface NetworkAdapter {
   readonly vendor: string;
   getCapabilities(): CapabilityReport;
@@ -114,12 +120,13 @@ export interface NetworkAdapter {
   ): Promise<ObservedEntitlement | { unreachable: true; detail: string }>;
   listActiveSessions(): Promise<ObservedSession[] | { unreachable: true; detail: string }>;
   /**
-   * Which device currently holds this client IP on the gateway's captive network?
-   * The captive portal uses it to confirm the device identity a browser claims;
-   * the browser's own claim is never trusted on its own.
+   * Is this device really on the gateway's captive network right now? Gateways that
+   * redirect with an IP (MikroTik) are asked which device holds that IP; controllers
+   * that redirect with a MAC (Omada) are asked whether that MAC is connected.
+   * The captive portal uses it so a browser's own claim is never trusted on its own.
    */
   lookupClient(
-    clientIp: string,
+    q: ClientQuery,
   ): Promise<{ macAddress: string } | null | { unreachable: true; detail: string }>;
 }
 

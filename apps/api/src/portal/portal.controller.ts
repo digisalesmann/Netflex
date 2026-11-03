@@ -15,11 +15,18 @@ import { RedemptionService } from '../vouchers/redemption.service.js';
 /** What the gateway put in the captive-portal redirect (never trusted until confirmed). */
 const Context = z.strictObject({
   gw: uuid,
+  /** Gateways that redirect with the device's IP (MikroTik, simulator). */
   ip: z
     .string()
     .trim()
-    .regex(/^(\d{1,3}\.){3}\d{1,3}$|^[0-9a-fA-F:]{2,39}$/),
+    .regex(/^(\d{1,3}\.){3}\d{1,3}$|^[0-9a-fA-F:]{2,39}$/)
+    .optional(),
   mac: z.string().trim().max(20),
+  /** Omada adds where the device is: access point, network name, band and site. */
+  ap: z.string().trim().max(20).optional(),
+  ssid: z.string().trim().min(1).max(64).optional(),
+  radio: z.coerce.number().int().min(0).max(3).optional(),
+  site: z.string().trim().min(1).max(64).optional(),
 });
 const Redeem = Context.extend({ code: z.string().max(40) });
 const LIMIT_CONTEXT = { name: 'portal-ip', limit: 60, windowSeconds: 60 };
@@ -71,7 +78,7 @@ export class PortalController {
     ctx: z.infer<typeof Context>,
     clientIp: string | undefined,
   ): Promise<Verified> {
-    await this.limits.hit(LIMIT_CONTEXT, clientIp ?? ctx.ip);
+    await this.limits.hit(LIMIT_CONTEXT, clientIp ?? ctx.ip ?? ctx.mac);
     const gw = await this.prisma.gateway.findUnique({
       where: { id: ctx.gw },
       include: {
@@ -92,7 +99,26 @@ export class PortalController {
     if (!mac) return { ok: false, state: 'RECONNECT_REQUIRED', property };
     const adapter = gw.status === 'DISABLED' ? null : this.registry.forGateway(gw);
     if (!adapter) return { ok: false, state: 'GATEWAY_UNAVAILABLE', property };
-    const seen = await adapter.lookupClient(ctx.ip);
+    if (gw.vendor === 'OMADA') {
+      const ap = ctx.ap ? normalizeMac(ctx.ap) : null;
+      // Omada needs the access point, network and band to switch the device on later.
+      if (ap && ctx.ssid && ctx.radio !== undefined && ctx.site) {
+        const where = { gatewayId_macAddress: { gatewayId: gw.id, macAddress: mac } };
+        const data = {
+          apMac: ap,
+          ssidName: ctx.ssid,
+          radioId: ctx.radio,
+          site: ctx.site,
+          seenAt: new Date(),
+        };
+        await this.prisma.portalClient.upsert({
+          where,
+          create: { gatewayId: gw.id, macAddress: mac, ...data },
+          update: data,
+        });
+      }
+    } else if (!ctx.ip) return { ok: false, state: 'RECONNECT_REQUIRED', property };
+    const seen = await adapter.lookupClient({ ip: ctx.ip ?? null, mac });
     if (seen && 'unreachable' in seen) return { ok: false, state: 'GATEWAY_UNAVAILABLE', property };
     if (!seen || normalizeMac(seen.macAddress) !== mac)
       return { ok: false, state: 'RECONNECT_REQUIRED', property };

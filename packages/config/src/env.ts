@@ -41,7 +41,11 @@ const baseSchema = z.object({
   PAYSTACK_SECRET_KEY: z.string().optional(),
   PAYSTACK_BASE_URL: z.string().url().default('https://api.paystack.co'),
 
-  NETWORK_ADAPTER: z.enum(['none', 'fake', 'mikrotik']).default('none'),
+  /**
+   * none: no Wi-Fi equipment connected. omada: TP-Link Omada through a lodge link
+   * (apps/lodge-link). fake: simulated gateway (development/test only).
+   */
+  NETWORK_ADAPTER: z.enum(['none', 'fake', 'mikrotik', 'omada']).default('none'),
   /** Sends sign-in codes and account emails. 'fake' keeps them in memory (dev/test only). */
   EMAIL_PROVIDER: z.enum(['none', 'fake', 'resend']).default('none'),
   RESEND_API_KEY: z.string().optional(),

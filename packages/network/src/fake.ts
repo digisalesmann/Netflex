@@ -4,6 +4,7 @@ import {
   requiredCapabilities,
   unsupported,
   type CapabilityReport,
+  type ClientQuery,
   type DesiredEntitlement,
   type GatewayHealth,
   type NetworkAdapter,
@@ -73,10 +74,10 @@ export class FakeNetworkAdapter implements NetworkAdapter {
   }
 
   lookupClient(
-    clientIp: string,
+    q: ClientQuery,
   ): Promise<{ macAddress: string } | null | { unreachable: true; detail: string }> {
     if (this.down) return Promise.resolve({ unreachable: true, detail: 'unreachable (simulated)' });
-    const mac = this.hosts.get(clientIp);
+    const mac = q.ip ? this.hosts.get(q.ip) : undefined;
     return Promise.resolve(mac ? { macAddress: mac } : null);
   }
 

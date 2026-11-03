@@ -12,7 +12,14 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { NetflexConfig } from '@netflex/config';
-import { recordAudit, type NetworkEngine } from '@netflex/core';
+import {
+  LINK_ONLINE_WINDOW_MS,
+  newPairingCode,
+  normalizePairingCode,
+  recordAudit,
+  sha256,
+  type NetworkEngine,
+} from '@netflex/core';
 import type { PrismaClient } from '@netflex/database';
 import { NETWORK_OPERATION_STATUSES, networkOperationStateMachine } from '@netflex/domain';
 import { z } from 'zod';
@@ -36,11 +43,16 @@ import { CONFIG, NETWORK_ENGINE, PRISMA } from '../infra/tokens.js';
  */
 const RegisterGateway = z.strictObject({
   name: z.string().trim().min(2).max(80),
-  vendor: z.enum(['MIKROTIK', 'UNIFI', 'OTHER', 'FAKE']),
+  vendor: z.enum(['MIKROTIK', 'OMADA', 'UNIFI', 'OTHER', 'FAKE']),
   model: z.string().trim().max(80).optional(),
   firmware: z.string().trim().max(40).optional(),
-  credentialRef: z.string().regex(/^[A-Z][A-Z0-9_]{2,60}$/, 'secret name like MAIN_ROUTER'),
+  /** Omada keeps its credentials on the lodge computer, so it needs none here. */
+  credentialRef: z
+    .string()
+    .regex(/^[A-Z][A-Z0-9_]{2,60}$/, 'secret name like MAIN_ROUTER')
+    .optional(),
 });
+const PAIRING_TTL_MS = 30 * 60_000;
 const Reason = z.strictObject({ reason });
 const OpsQuery = z.strictObject({
   status: z.enum(NETWORK_OPERATION_STATUSES).optional(),
@@ -61,22 +73,143 @@ export class NetworkController {
   @RequirePermission('network.read')
   @Get('gateways')
   gateways(@Param('propertyId', new ParseUUIDPipe()) propertyId: string) {
-    return this.prisma.gateway.findMany({
-      where: { propertyId },
-      orderBy: { createdAt: 'asc' },
-      select: {
-        id: true,
-        name: true,
-        vendor: true,
-        model: true,
-        firmware: true,
-        status: true,
-        capabilities: true,
-        lastHealthAt: true,
-        lastHealthyAt: true,
-        credentialRef: true,
-      },
+    return this.prisma.gateway
+      .findMany({
+        where: { propertyId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          vendor: true,
+          model: true,
+          firmware: true,
+          status: true,
+          capabilities: true,
+          lastHealthAt: true,
+          lastHealthyAt: true,
+          credentialRef: true,
+          link: {
+            select: {
+              pairedAt: true,
+              tokenHash: true,
+              pairingExpiresAt: true,
+              lastSeenAt: true,
+              agentVersion: true,
+              controllerVersion: true,
+              controllerOk: true,
+              detail: true,
+              features: true,
+            },
+          },
+        },
+      })
+      .then((rows) =>
+        rows.map(({ link, ...g }) => ({
+          ...g,
+          link: link
+            ? {
+                paired: !!link.tokenHash,
+                pairedAt: link.pairedAt,
+                pairingPending: !!link.pairingExpiresAt && link.pairingExpiresAt > new Date(),
+                online:
+                  !!link.tokenHash &&
+                  !!link.lastSeenAt &&
+                  Date.now() - link.lastSeenAt.getTime() < LINK_ONLINE_WINDOW_MS,
+                lastSeenAt: link.lastSeenAt,
+                agentVersion: link.agentVersion,
+                controllerVersion: link.controllerVersion,
+                controllerOk: link.controllerOk,
+                detail: link.detail,
+                features: link.features,
+              }
+            : null,
+        })),
+      );
+  }
+
+  /** A one-time code to type into the lodge link on the lodge computer (valid 30 minutes). */
+  @RequirePermission('network.operate')
+  @Post('gateways/:gatewayId/link-code')
+  @HttpCode(200)
+  async linkCode(
+    @CurrentAuth() auth: AuthContext,
+    @RequestMeta() meta: RequestMetaValue,
+    @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
+    @Param('gatewayId', new ParseUUIDPipe()) gatewayId: string,
+  ) {
+    const gw = await this.prisma.gateway.findFirst({ where: { id: gatewayId, propertyId } });
+    if (!gw) throw notFound();
+    if (gw.vendor !== 'OMADA')
+      throw new ApiError(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'UNPROCESSABLE',
+        'Only Omada equipment uses a lodge link.',
+      );
+    const code = newPairingCode();
+    const expiresAt = new Date(Date.now() + PAIRING_TTL_MS);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.lodgeLink.upsert({
+        where: { gatewayId },
+        create: {
+          gatewayId,
+          pairingCodeHash: sha256(normalizePairingCode(code)),
+          pairingExpiresAt: expiresAt,
+        },
+        update: {
+          pairingCodeHash: sha256(normalizePairingCode(code)),
+          pairingExpiresAt: expiresAt,
+        },
+      });
+      await recordAudit(tx, {
+        actorType: 'USER',
+        actorUserId: auth.user.id,
+        propertyId,
+        action: 'gateway.link_code_created',
+        targetType: 'gateway',
+        targetId: gatewayId,
+        correlationId: meta.requestId,
+        ipAddress: meta.ip,
+      });
     });
+    return { code, expiresAt };
+  }
+
+  /** Disconnect the lodge link (e.g. the computer was lost or replaced). */
+  @RequirePermission('network.operate')
+  @Post('gateways/:gatewayId/link-unpair')
+  @HttpCode(200)
+  async linkUnpair(
+    @CurrentAuth() auth: AuthContext,
+    @RequestMeta() meta: RequestMetaValue,
+    @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
+    @Param('gatewayId', new ParseUUIDPipe()) gatewayId: string,
+    @Body(new ZodPipe(Reason)) body: z.infer<typeof Reason>,
+  ) {
+    const gw = await this.prisma.gateway.findFirst({ where: { id: gatewayId, propertyId } });
+    if (!gw) throw notFound();
+    await this.prisma.$transaction(async (tx) => {
+      await tx.lodgeLink.updateMany({
+        where: { gatewayId },
+        data: {
+          tokenHash: null,
+          pairingCodeHash: null,
+          pairingExpiresAt: null,
+          controllerOk: false,
+        },
+      });
+      await recordAudit(tx, {
+        actorType: 'USER',
+        actorUserId: auth.user.id,
+        propertyId,
+        action: 'gateway.link_unpaired',
+        targetType: 'gateway',
+        targetId: gatewayId,
+        reason: body.reason,
+        correlationId: meta.requestId,
+        ipAddress: meta.ip,
+      });
+    });
+    return { unpaired: true };
   }
 
   @RequirePermission('network.operate')
@@ -96,7 +229,15 @@ export class NetworkController {
     }
     return this.prisma
       .$transaction(async (tx) => {
-        const g = await tx.gateway.create({ data: { propertyId, ...body } });
+        if (!body.credentialRef && body.vendor !== 'OMADA')
+          throw new ApiError(
+            HttpStatus.BAD_REQUEST,
+            'VALIDATION_FAILED',
+            'Name the secret that holds this gateway’s credentials.',
+          );
+        const g = await tx.gateway.create({
+          data: { propertyId, ...body, credentialRef: body.credentialRef ?? 'LODGE_LINK' },
+        });
         await recordAudit(tx, {
           actorType: 'USER',
           actorUserId: auth.user.id,

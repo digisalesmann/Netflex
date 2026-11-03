@@ -11,7 +11,7 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "npm run db:generate && tsc -b tsconfig.json && node packages/ui/scripts/build-css.mjs && npm run build -w @netflex/web",
+    "build": "npm run db:generate && tsc -b tsconfig.json && node packages/ui/scripts/build-css.mjs && node scripts/lodge-link/package.mjs && npm run build -w @netflex/web",
     "typecheck": "tsc -b tsconfig.json && tsc -p tsconfig.tests.json && tsc -p apps/web/tsconfig.json --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
