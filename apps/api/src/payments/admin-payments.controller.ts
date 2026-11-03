@@ -36,6 +36,8 @@ import { PAYMENT_ENGINE, PRISMA } from '../infra/tokens.js';
 
 const ListQuery = z.strictObject({
   status: z.enum(PAYMENT_STATUSES).optional(),
+  /** Order reference (NFX-…) or Paystack reference, or part of one. */
+  q: z.string().trim().min(3).max(60).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
   cursor: uuid.optional(),
 });
@@ -45,6 +47,11 @@ const RefundRequest = z.strictObject({
     .trim()
     .regex(/^\d{1,15}(\.\d{1,2})?$/),
   reason,
+});
+const RefundList = z.strictObject({
+  status: z
+    .enum(['REQUESTED', 'APPROVED', 'REJECTED', 'SUBMITTED', 'SUCCEEDED', 'FAILED'])
+    .optional(),
 });
 const Reason = z.strictObject({ reason });
 const Resolve = z.strictObject({ resolution: z.string().trim().min(5).max(500) });
@@ -71,8 +78,20 @@ export class AdminPaymentsController {
     @Query(new ZodPipe(ListQuery)) q: z.infer<typeof ListQuery>,
   ) {
     const rows = await this.prisma.payment.findMany({
-      where: { order: { propertyId }, ...(q.status ? { status: q.status } : {}) },
-      orderBy: { id: 'asc' },
+      where: {
+        order: { propertyId },
+        ...(q.status ? { status: q.status } : {}),
+        ...(q.q
+          ? {
+              OR: [
+                { providerReference: { contains: q.q, mode: 'insensitive' } },
+                { order: { reference: { contains: q.q, mode: 'insensitive' } } },
+              ],
+            }
+          : {}),
+      },
+      // Newest first (id breaks ties so cursor paging stays stable).
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: q.limit + 1,
       ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
       select: {
@@ -86,7 +105,17 @@ export class AdminPaymentsController {
         createdAt: true,
         verifiedAt: true,
         failureCode: true,
-        order: { select: { id: true, reference: true, status: true } },
+        order: {
+          select: {
+            id: true,
+            reference: true,
+            status: true,
+            customerPhone: true,
+            planVersion: { select: { name: true } },
+            customer: { select: { displayName: true, email: true } },
+          },
+        },
+        _count: { select: { refunds: { where: { status: 'REQUESTED' } } } },
       },
     });
     const data = rows.slice(0, q.limit);
@@ -102,8 +131,24 @@ export class AdminPaymentsController {
     const p = await this.prisma.payment.findFirst({
       where: { id: paymentId, order: { propertyId } },
       include: {
-        order: { select: { id: true, reference: true, status: true, paidAt: true } },
-        refunds: { orderBy: { createdAt: 'asc' } },
+        order: {
+          select: {
+            id: true,
+            reference: true,
+            status: true,
+            paidAt: true,
+            customerPhone: true,
+            planVersion: { select: { name: true } },
+            customer: { select: { displayName: true, email: true } },
+          },
+        },
+        refunds: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            requestedBy: { select: { id: true, displayName: true } },
+            approvedBy: { select: { id: true, displayName: true } },
+          },
+        },
         discrepancies: { orderBy: { detectedAt: 'asc' } },
       },
     });
@@ -120,6 +165,32 @@ export class AdminPaymentsController {
       },
     });
     return { ...p, webhookEvents: events };
+  }
+
+  /** Refunds at the property, newest first (the approval queue is status=REQUESTED). */
+  @RequirePermission('payment.read')
+  @Get('refunds')
+  refunds(
+    @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
+    @Query(new ZodPipe(RefundList)) q: z.infer<typeof RefundList>,
+  ) {
+    return this.prisma.refund.findMany({
+      where: { payment: { order: { propertyId } }, ...(q.status ? { status: q.status } : {}) },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 100,
+      include: {
+        requestedBy: { select: { id: true, displayName: true } },
+        approvedBy: { select: { id: true, displayName: true } },
+        payment: {
+          select: {
+            id: true,
+            amountMinor: true,
+            providerReference: true,
+            order: { select: { reference: true, planVersion: { select: { name: true } } } },
+          },
+        },
+      },
+    });
   }
 
   /** Re-check a payment with the provider now (e.g. customer says they paid). */

@@ -35,6 +35,12 @@ const NAV: (NavItem & { need?: Permission })[] = [
     need: 'voucher.read',
     icon: 'M5.5 6h13A1.5 1.5 0 0 1 20 7.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5V14a2 2 0 0 0 0-4V7.5A1.5 1.5 0 0 1 5.5 6zM14.5 6.5v1.5M14.5 11.25v1.5M14.5 16v1.5',
   },
+  {
+    href: '/admin/payments',
+    label: 'Payments',
+    need: 'payment.read',
+    icon: 'M3.5 6.5h17v11h-17zM3.5 10h17M7 14.5h3',
+  },
 ];
 
 export default async function OfficeLayout({ children }: { children: ReactNode }) {

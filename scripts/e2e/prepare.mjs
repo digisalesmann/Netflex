@@ -65,6 +65,7 @@ const PROJECTS = ['desktop', 'mobile'];
 // so parallel runs never reuse the same 30-second code.
 const owners = {};
 const managers = {};
+const finance = {};
 for (const project of PROJECTS) {
   const secret = generateTotpSecret();
   const u = await db.user.create({
@@ -90,6 +91,20 @@ for (const project of PROJECTS) {
     },
   });
   managers[project] = { id: m.id, email: m.email, password: NEW_STAFF_PASSWORD };
+  // Finance staff (two-step set up) to approve refunds the owner asks for.
+  const fSecret = generateTotpSecret();
+  const f = await db.user.create({
+    data: {
+      kind: 'STAFF',
+      email: `finance-${project}@test.invalid`,
+      displayName: 'Femi Finance',
+      passwordHash: await hashPassword(STAFF_PASSWORD),
+      passwordUpdatedAt: new Date(),
+      mfaEnabled: true,
+      mfaSecretEnc: encryptSecret(deriveKey(E2E.AUTH_SECRET, 'mfa-secret'), fSecret),
+    },
+  });
+  finance[project] = { id: f.id, email: f.email, password: STAFF_PASSWORD, mfaSecret: fSecret };
 }
 const building = await db.building.create({ data: { propertyId: property.id, name: 'Main' } });
 const floor = await db.floor.create({
@@ -102,6 +117,11 @@ const managerRole = await db.role.findUniqueOrThrow({ where: { key: 'PROPERTY_AD
 for (const m of Object.values(managers))
   await db.userRole.create({
     data: { userId: m.id, roleId: managerRole.id, propertyId: property.id },
+  });
+const financeRole = await db.role.findUniqueOrThrow({ where: { key: 'FINANCE' } });
+for (const f of Object.values(finance))
+  await db.userRole.create({
+    data: { userId: f.id, roleId: financeRole.id, propertyId: property.id },
   });
 
 async function plan(slug, v) {
@@ -220,6 +240,7 @@ writeFileSync(
       propertySlug: property.slug,
       owners,
       managers,
+      finance,
     },
     null,
     2,

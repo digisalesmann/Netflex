@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { adminApi, currentProperty, requireStaff } from '@/lib/admin';
 import { money } from '@/lib/plans';
 
@@ -77,10 +78,18 @@ export default async function OverviewPage() {
   const attention = o
     ? [
         o.attention.refundsToApprove
-          ? { n: o.attention.refundsToApprove, text: 'refund requests waiting for approval' }
+          ? {
+              n: o.attention.refundsToApprove,
+              text: 'refund requests waiting for approval',
+              href: '/admin/payments/refunds',
+            }
           : null,
         o.attention.discrepancies
-          ? { n: o.attention.discrepancies, text: 'payment mismatches to resolve' }
+          ? {
+              n: o.attention.discrepancies,
+              text: 'payment mismatches to resolve',
+              href: '/admin/payments/mismatches',
+            }
           : null,
         o.attention.provisioningFailed
           ? { n: o.attention.provisioningFailed, text: 'plans that couldn’t be switched on' }
@@ -92,7 +101,7 @@ export default async function OverviewPage() {
         o.access?.expiringSoon
           ? { n: o.access.expiringSoon, text: 'plans ending in the next 2 days' }
           : null,
-      ].filter((x): x is { n: number; text: string } => x !== null)
+      ].filter((x): x is { n: number; text: string; href?: string } => x !== null)
     : [];
 
   return (
@@ -169,7 +178,15 @@ export default async function OverviewPage() {
                 <ul className="adm-att">
                   {attention.map((a) => (
                     <li key={a.text}>
-                      <strong>{a.n}</strong> {a.text}
+                      {a.href ? (
+                        <Link href={a.href}>
+                          <strong>{a.n}</strong> {a.text}
+                        </Link>
+                      ) : (
+                        <>
+                          <strong>{a.n}</strong> {a.text}
+                        </>
+                      )}
                     </li>
                   ))}
                 </ul>

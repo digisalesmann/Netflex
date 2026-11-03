@@ -7916,3 +7916,155 @@ summary {
     display: none;
   }
 }
+/* office: payments */
+.adm-subnav {
+  margin: calc(var(--nf-space-3) * -1) 0 var(--nf-space-6);
+}
+.adm-tabs a span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: var(--nf-radius-pill);
+  background: var(--nf-color-warning);
+  color: #fff;
+  font-size: 0.6875rem;
+  opacity: 1;
+}
+.adm-section {
+  margin-top: var(--nf-space-7);
+}
+.adm-section:first-of-type {
+  margin-top: 0;
+}
+.adm-mono {
+  font-family: var(--nf-font-mono, ui-monospace, monospace);
+  letter-spacing: 0.02em;
+}
+.adm-pays {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.adm-pay {
+  display: flex;
+  gap: var(--nf-space-4);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--nf-space-4) 0;
+  border-top: var(--nf-border-hairline) solid var(--nf-color-border);
+  color: inherit;
+  text-decoration: none;
+}
+.adm-pays li:first-child .adm-pay {
+  border-top: 0;
+  padding-top: 0;
+}
+.adm-pay__main,
+.adm-pay__side {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.adm-pay__main span {
+  overflow: hidden;
+  color: var(--nf-color-text-muted);
+  font-size: var(--nf-text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.adm-pay__side {
+  flex: none;
+  justify-items: end;
+  text-align: right;
+}
+.adm-pay__side strong {
+  font-variant-numeric: tabular-nums;
+}
+@media (hover: hover) {
+  .adm-pay:hover .adm-mono {
+    color: var(--nf-color-accent);
+  }
+}
+.adm-refunds {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.adm-refunds li {
+  display: grid;
+  gap: var(--nf-space-1);
+  padding: var(--nf-space-4) 0;
+  border-top: var(--nf-border-hairline) solid var(--nf-color-border);
+}
+.adm-refunds li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.adm-refund__top {
+  display: flex;
+  gap: var(--nf-space-3);
+  align-items: center;
+}
+.adm-refund__top strong {
+  font-size: var(--nf-text-lg);
+  font-variant-numeric: tabular-nums;
+}
+.adm-refund__why {
+  color: var(--nf-color-text);
+}
+.adm-refund__why a {
+  color: var(--nf-color-accent);
+  font-weight: var(--nf-weight-semibold);
+  text-decoration: none;
+}
+.adm-refund__who {
+  color: var(--nf-color-text-muted);
+  font-size: var(--nf-text-sm);
+}
+.adm-decide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nf-space-2);
+  margin-top: var(--nf-space-2);
+}
+.adm-decide .adm-btn {
+  min-height: 2.25rem;
+  padding: 0 var(--nf-space-4);
+}
+.adm-note {
+  margin-top: var(--nf-space-1);
+  color: var(--nf-color-text-muted);
+  font-size: var(--nf-text-sm);
+  font-style: italic;
+}
+.adm-inline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--nf-space-2) var(--nf-space-3);
+  align-items: center;
+}
+.adm-inline__msg {
+  max-width: 22rem;
+  color: var(--nf-color-success);
+  font-size: var(--nf-text-sm);
+}
+.adm-inline__msg[data-ok='false'] {
+  color: var(--nf-color-danger);
+}
+.adm-list__main a {
+  color: var(--nf-color-accent);
+  font-weight: var(--nf-weight-semibold);
+  text-decoration: none;
+}
+.adm-att a {
+  color: inherit;
+  text-decoration: none;
+}
+@media (hover: hover) {
+  .adm-att a:hover,
+  .adm-att a:hover strong {
+    color: var(--nf-color-accent);
+  }
+}

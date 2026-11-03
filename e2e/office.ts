@@ -9,6 +9,7 @@ const { totpAt } = require('../packages/security/dist/index.js') as {
 };
 
 export type Seed = {
+  finance: Record<string, { email: string; password: string; mfaSecret: string }>;
   owners: Record<string, { email: string; password: string; mfaSecret: string }>;
   managers: Record<string, { email: string; password: string }>;
 };
@@ -28,7 +29,15 @@ export async function freshCode(secret: string): Promise<string> {
 }
 
 export async function signInOwner(page: Page, project: string) {
-  const o = seed().owners[project];
+  await signInStaff(page, seed().owners[project], 'Ada');
+}
+
+/** Password + two-step sign-in for any seeded staff account. */
+export async function signInStaff(
+  page: Page,
+  o: { email: string; password: string; mfaSecret: string },
+  firstName: string,
+) {
   await asNewVisitor(page);
   await page.goto('/admin');
   await expect(page).toHaveURL(/\/admin\/sign-in/);
@@ -39,7 +48,9 @@ export async function signInOwner(page: Page, project: string) {
   await page.getByLabel('6-digit code').fill(await freshCode(o.mfaSecret));
   await page.getByRole('button', { name: 'Verify' }).click();
   await expect(
-    page.getByRole('heading', { name: /Good (morning|afternoon|evening), Ada/ }),
+    page.getByRole('heading', {
+      name: new RegExp(`Good (morning|afternoon|evening), ${firstName}`),
+    }),
   ).toBeVisible();
 }
 
