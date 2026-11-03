@@ -8,21 +8,21 @@ const STEPS = [
     title: 'Join the Wi-Fi',
     body: 'Connect to the lodge network and the sign-in page opens by itself. Nothing to install.',
     img: '/media/product/portal-step-1.webp',
-    alt: 'The Netflex sign-in page on a phone, offering “I have a voucher” or “Choose a plan”.',
+    alt: 'The Netflex Wi-Fi sign-in page at ND Lodge on a phone, offering “I have a voucher” or “Choose a plan”.',
   },
   {
     n: '02',
     title: 'Pick a plan or use a voucher',
     body: 'Price, devices and refund terms are shown before you pay. Pay securely with Paystack, or enter a code from the front desk.',
     img: '/media/product/portal-step-2.webp',
-    alt: 'The plan list on a phone: Day pass ₦500 and Week pass ₦2,500, each for up to 2 devices.',
+    alt: 'The plan list on a phone: Daily ₦400, Weekly ₦2,500 and Monthly ₦8,000, each showing how long it lasts and how many devices it covers.',
   },
   {
     n: '03',
     title: 'You’re online',
     body: 'The page confirms you’re connected and shows exactly how much time is left. Renew or manage devices from your account.',
     img: '/media/product/portal-step-3.webp',
-    alt: 'The “You’re connected” screen on a phone, showing the plan and the time left.',
+    alt: 'The “You’re connected” screen on a phone, showing 6 days 23 hours left on the Weekly plan and when it ends.',
   },
 ];
 

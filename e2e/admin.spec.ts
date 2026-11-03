@@ -34,6 +34,10 @@ test('owner signs in with password and two-step code and sees the overview', asy
   const menu = page.getByRole('button', { name: 'Menu' });
   if (await menu.isVisible()) await menu.click();
   await page.getByRole('button', { name: 'Sign out' }).click();
+  await page
+    .getByRole('dialog', { name: 'Sign out of the office?' })
+    .getByRole('button', { name: 'Sign out' })
+    .click();
   await expect(page).toHaveURL(/\/admin\/sign-in/);
   await page.goto('/admin');
   await expect(page).toHaveURL(/\/admin\/sign-in/);

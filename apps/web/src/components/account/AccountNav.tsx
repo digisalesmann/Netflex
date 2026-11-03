@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
+import { ConfirmButton } from '../ConfirmButton';
 
 const LINKS = [
   {
@@ -51,9 +52,17 @@ function Icon({ d }: { d: string }) {
 const SECONDARY = new Set(['/account/voucher', '/account/settings']);
 const SIGN_OUT_ICON = 'M14.5 4.5h4v15h-4M10 16.5 14.5 12 10 7.5M14.5 12H3.5';
 
-function signOut() {
-  void api('/auth/logout', { method: 'POST' }).finally(() => window.location.assign('/'));
+async function signOut() {
+  await api('/auth/logout', { method: 'POST' }).catch(() => null);
+  window.location.assign('/');
 }
+
+const SIGN_OUT = {
+  title: 'Sign out?',
+  body: 'You’ll need a new code from your email to sign back in. Your plans keep running.',
+  confirmLabel: 'Sign out',
+  onConfirm: signOut,
+};
 
 export function AccountNav() {
   const path = usePathname();
@@ -95,10 +104,10 @@ export function AccountNav() {
     <nav aria-label="Account" className="acct-shell">
       <div className="acct-shell__bar">
         <p className="acct-shell__title">My account</p>
-        <button type="button" className="acct-shell__signout" onClick={signOut}>
+        <ConfirmButton className="acct-shell__signout" {...SIGN_OUT}>
           <Icon d={SIGN_OUT_ICON} />
           Sign out
-        </button>
+        </ConfirmButton>
       </div>
       <div className="acct-tabs">
         {LINKS.map((l, i) => (
@@ -151,10 +160,10 @@ export function AccountNav() {
                   <span>{l.label}</span>
                 </Link>
               ))}
-              <button type="button" className="acct-sheet__item" onClick={signOut}>
+              <ConfirmButton className="acct-sheet__item" {...SIGN_OUT}>
                 <Icon d={SIGN_OUT_ICON} />
                 <span>Sign out</span>
-              </button>
+              </ConfirmButton>
             </div>
           </>
         ) : null}

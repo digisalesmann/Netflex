@@ -11,10 +11,10 @@ const STEPS = [
     title: 'Join the property Wi-Fi',
     body: [
       'Select the lodge network on your phone or laptop. The sign-in page opens by itself.',
-      'If it doesn’t, open your browser and visit any website, and you’ll be taken there.',
+      'Didn’t see the sign-in page? Open your browser and go to any website, like google.com. You’ll be taken there.',
     ],
     img: '/media/product/portal-step-1.webp',
-    alt: 'The Netflex sign-in page on a phone, offering “I have a voucher” or “Choose a plan”.',
+    alt: 'The Netflex Wi-Fi sign-in page at ND Lodge on a phone, offering “I have a voucher” or “Choose a plan”.',
   },
   {
     title: 'Choose a plan, or enter a voucher',
@@ -23,7 +23,7 @@ const STEPS = [
       'Got a code from the front desk? Enter it instead and skip paying online.',
     ],
     img: '/media/product/portal-step-2.webp',
-    alt: 'The plan list on a phone: Day pass ₦500 and Week pass ₦2,500, each for up to 2 devices.',
+    alt: 'The plan list on a phone: Daily ₦400, Weekly ₦2,500 and Monthly ₦8,000, each showing how long it lasts and how many devices it covers.',
   },
   {
     title: 'Check the terms, then pay securely',
@@ -32,7 +32,7 @@ const STEPS = [
       'You pay on Paystack’s checkout. We never see your card details, and your access starts only after Paystack confirms the payment.',
     ],
     img: '/media/product/portal-review.webp',
-    alt: 'The “Review your purchase” screen for a Week pass, listing price, duration, start rule, devices, speed and refund terms.',
+    alt: 'The “Review your purchase” receipt for the Weekly plan, listing price, how long it lasts, when time starts, devices, speed, fair use and refund terms.',
   },
   {
     title: 'You’re connected',
@@ -41,7 +41,7 @@ const STEPS = [
       'It shows exactly how much time is left. Renew or manage devices from your account.',
     ],
     img: '/media/product/portal-step-3.webp',
-    alt: 'The “You’re connected” screen on a phone, showing the plan and the time left.',
+    alt: 'The “You’re connected” screen on a phone, showing 6 days 23 hours left on the Weekly plan and when it ends.',
   },
 ];
 

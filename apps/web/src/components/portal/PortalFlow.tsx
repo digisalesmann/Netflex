@@ -358,7 +358,8 @@ export function PortalFlow({ ctx }: { ctx: PortalCtx | null }) {
             <Heading refEl={heading}>Reconnect to the Wi-Fi</Heading>
             <p>
               We couldn&apos;t confirm your device on the property network. Make sure you&apos;re
-              connected to the property Wi-Fi, then open any website to come back to this page.
+              connected to the property Wi-Fi, then open any website, like google.com, to come back
+              to this page.
             </p>
             <p className="muted small">
               This page only works while you&apos;re on the property Wi-Fi, not from a bookmark or

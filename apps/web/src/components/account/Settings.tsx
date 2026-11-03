@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError, api } from '@/lib/api';
+import { ConfirmButton } from '../ConfirmButton';
 
 type Channel = { expiryReminders: boolean; receipts: boolean; outageNotices: boolean };
 interface Prefs {
@@ -101,7 +102,6 @@ export function Settings({
   const [msg, setMsg] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null);
   const [p, setP] = useState(prefs.preferences);
   const [busy, setBusy] = useState(false);
-  const [confirmAll, setConfirmAll] = useState(false);
   const [active, setActive] = useState<string>('profile');
   const dirty = JSON.stringify(p) !== JSON.stringify(prefs.preferences);
 
@@ -289,12 +289,14 @@ export function Settings({
                     <span>Last active {ago(s.lastSeenAt)}</span>
                   </span>
                   {!s.current ? (
-                    <button
-                      type="button"
+                    <ConfirmButton
                       className="acct-btn"
                       disabled={busy}
-                      onClick={() =>
-                        void act(
+                      title={`Sign out ${d.name}?`}
+                      body="That device will need a new code from your email to sign back in."
+                      confirmLabel="Sign out that device"
+                      onConfirm={() =>
+                        act(
                           () => api(`/me/sessions/${s.id}/revoke`, { method: 'POST' }),
                           'Signed out on that device.',
                           () => window.location.reload(),
@@ -302,42 +304,27 @@ export function Settings({
                       }
                     >
                       Sign out this device
-                    </button>
+                    </ConfirmButton>
                   ) : null}
                 </li>
               );
             })}
           </ul>
-          {confirmAll ? (
-            <div className="set__confirm" role="group" aria-label="Confirm sign out everywhere">
-              <p>Sign out on every device, including this one?</p>
-              <button
-                type="button"
-                className="acct-btn set__danger"
-                disabled={busy}
-                onClick={() =>
-                  void act(
-                    () => api('/auth/logout-all', { method: 'POST' }),
-                    'Signed out everywhere.',
-                    () => window.location.assign('/'),
-                  )
-                }
-              >
-                Yes, sign out everywhere
-              </button>
-              <button type="button" className="acct-btn" onClick={() => setConfirmAll(false)}>
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="acct-btn set__danger"
-              onClick={() => setConfirmAll(true)}
-            >
-              Sign out everywhere
-            </button>
-          )}
+          <ConfirmButton
+            className="acct-btn set__danger"
+            title="Sign out everywhere?"
+            body="Every device signed in to your account, including this one, will be signed out. Your plans keep running."
+            confirmLabel="Sign out everywhere"
+            onConfirm={() =>
+              act(
+                () => api('/auth/logout-all', { method: 'POST' }),
+                'Signed out everywhere.',
+                () => window.location.assign('/'),
+              )
+            }
+          >
+            Sign out everywhere
+          </ConfirmButton>
         </section>
 
         <section id="privacy" className="set__sec" aria-labelledby="privacy-title">

@@ -107,6 +107,22 @@ test('support request, preferences, data export and sign-out', async ({ page }) 
     .getByRole('button', { name: 'Sign out', exact: true })
     .filter({ visible: true })
     .click();
+  // Asks first; Cancel keeps you signed in.
+  const confirm = page.getByRole('dialog', { name: 'Sign out?' });
+  await expect(confirm).toBeVisible();
+  await expect(confirm.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  await expectAccessible(page);
+  await confirm.getByRole('button', { name: 'Cancel' }).click();
+  await expect(confirm).toBeHidden();
+  await openMoreIfNeeded(page);
+  await page
+    .getByRole('button', { name: 'Sign out', exact: true })
+    .filter({ visible: true })
+    .click();
+  await page
+    .getByRole('dialog', { name: 'Sign out?' })
+    .getByRole('button', { name: 'Sign out' })
+    .click();
   await expect(page).toHaveURL(/\/$/);
   await page.goto('/account');
   await expect(page).toHaveURL(/\/account\/sign-in/);

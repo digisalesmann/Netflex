@@ -25,8 +25,8 @@ export function FinalCta({ property }: { property: PublicProperty | null }) {
             Get online at {property?.name ?? 'the lodge'}.
           </h2>
           <p className="mk-final__lede">
-            Already on the Wi-Fi? Your phone opens the sign-in page by itself. If it doesn&apos;t,
-            open your browser and visit any website.
+            Already on the Wi-Fi? Your phone opens the sign-in page by itself. Didn&apos;t see it?
+            Open your browser and go to any website, like google.com. You&apos;ll be taken there.
           </p>
           <div className="hero__actions mk-final__actions">
             <Link className="hero__button hero__button--solid" href="/plans">

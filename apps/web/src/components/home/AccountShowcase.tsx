@@ -52,7 +52,7 @@ export function AccountShowcase() {
             src="/media/product/account-plan-1600.webp"
             srcSet="/media/product/account-plan-900.webp 900w, /media/product/account-plan-1600.webp 1600w"
             sizes="(min-width: 1100px) 1040px, 100vw"
-            alt="The Netflex account page for a Week pass: connected, 6 days 23 hours left, 1 of 2 devices in use, with a Renew button and a list of devices."
+            alt="The Netflex account overview: the Weekly plan is connected with 6 days 23 hours left and 1 of 1 devices in use, with Manage plan and Buy another plan buttons."
             width={1600}
             height={1025}
             loading="lazy"

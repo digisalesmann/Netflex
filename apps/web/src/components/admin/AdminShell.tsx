@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/lib/api';
+import { ConfirmButton } from '../ConfirmButton';
 import { Logo } from '../Logo';
 
 export interface NavItem {
@@ -104,9 +105,15 @@ export function AdminShell({
           <strong>{user.name}</strong>
           <span>{user.role}</span>
         </span>
-        <button type="button" className="adm-me__out" onClick={() => void signOut()}>
+        <ConfirmButton
+          className="adm-me__out"
+          title="Sign out of the office?"
+          body="You’ll need your password and authenticator code to sign back in."
+          confirmLabel="Sign out"
+          onConfirm={signOut}
+        >
           Sign out
-        </button>
+        </ConfirmButton>
       </div>
     </>
   );
