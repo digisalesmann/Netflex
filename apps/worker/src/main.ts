@@ -38,7 +38,8 @@ async function main(): Promise<void> {
   });
   const prisma = createPrismaClient(config.DATABASE_URL);
   // BullMQ requires maxRetriesPerRequest: null on its connections.
-  const redis = new Redis(config.REDIS_URL, { maxRetriesPerRequest: null });
+  // family 0: IPv4 or IPv6 (Railway's private network can be IPv6-only).
+  const redis = new Redis(config.REDIS_URL, { family: 0, maxRetriesPerRequest: null });
   redis.on('error', (err: Error) => log.warn({ err: err.message }, 'redis connection error'));
   const sink = createBullSink(redis);
 

@@ -32,6 +32,8 @@ export class InfraModule implements OnApplicationShutdown {
             // Commands queue briefly while (re)connecting, but never wait more than 2s:
             // callers such as the rate limiter then fail closed instead of hanging.
             const redis = new Redis(config.REDIS_URL, {
+              // IPv4 or IPv6 (Railway's private network can be IPv6-only).
+              family: 0,
               maxRetriesPerRequest: 1,
               commandTimeout: 2_000,
               connectTimeout: 5_000,
