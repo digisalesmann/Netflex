@@ -55,7 +55,8 @@ test('a new manager sets up two-step and replaces the temporary password', async
 
   await expect(page.getByRole('heading', { name: 'Set up two-step sign-in' })).toBeVisible();
   await expect(page.getByRole('img', { name: 'QR code for your authenticator app' })).toBeVisible();
-  const key = (await page.locator('.adm-qr__key code').innerText()).replace(/\s/g, '');
+  await expect(page.getByRole('button', { name: 'Copy key' })).toBeVisible();
+  const key = (await page.locator('.adm-qr__row code').innerText()).replace(/\s/g, '');
   await page.getByLabel('6-digit code').fill(await freshCode(key));
   await page.getByRole('button', { name: 'Verify' }).click();
 

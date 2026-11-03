@@ -6876,14 +6876,16 @@ summary {
 /* two-step QR on the sign-in page */
 .adm-qr {
   display: grid;
-  gap: var(--nf-space-3);
-  justify-items: start;
+  gap: var(--nf-space-2);
+  justify-items: center;
   margin-bottom: var(--nf-space-5);
+  text-align: center;
 }
 .adm-qr__code {
   display: block;
   width: 11.5rem;
   height: 11.5rem;
+  margin-bottom: var(--nf-space-3);
   padding: var(--nf-space-3);
   border: 1px solid var(--nf-color-border);
   border-radius: 1rem;
@@ -6899,13 +6901,65 @@ summary {
   color: var(--nf-color-text-muted);
   font-size: var(--nf-text-sm);
 }
-.adm-qr__key code {
-  display: block;
-  margin-top: var(--nf-space-1);
+.adm-qr__row {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: var(--nf-space-1);
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+}
+.adm-qr__row code {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.6em;
   color: var(--nf-color-text);
   font-size: var(--nf-text-sm);
-  letter-spacing: 0.06em;
-  overflow-wrap: anywhere;
+  letter-spacing: 0.04em;
+  text-align: left;
+}
+.adm-qr__row code span {
+  white-space: nowrap;
+}
+@media (max-width: 559px) {
+  /* narrow screens: the two halves stack into a compact block beside the icon */
+  .adm-qr__row code {
+    width: min-content;
+  }
+}
+.adm-qr__copy {
+  display: inline-flex;
+  align-items: center;
+  width: var(--nf-layout-touch-target);
+  height: var(--nf-layout-touch-target);
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0.75rem;
+  background: none;
+  color: var(--nf-color-text-muted);
+  font: inherit;
+  font-size: var(--nf-text-xs);
+  font-weight: var(--nf-weight-semibold);
+  cursor: pointer;
+  transition: color var(--nf-motion-fast) var(--nf-motion-easing);
+}
+.adm-qr__copy svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.adm-qr__copy[data-copied='true'] {
+  color: var(--nf-color-success);
+}
+@media (hover: hover) {
+  .adm-qr__copy:hover {
+    color: var(--nf-color-text);
+  }
 }
 /* office: header row, buttons, toolbar */
 .adm-head--row {
