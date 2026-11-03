@@ -42,6 +42,12 @@ const NAV: (NavItem & { need?: Permission })[] = [
     icon: 'M3.5 6.5h17v11h-17zM3.5 10h17M7 14.5h3',
   },
   {
+    href: '/admin/network',
+    label: 'Network',
+    need: 'network.read',
+    icon: 'M12 18.5h.01M8.5 15a5 5 0 0 1 7 0M5.5 12a9.5 9.5 0 0 1 13 0M2.5 9a14 14 0 0 1 19 0',
+  },
+  {
     href: '/admin/support',
     label: 'Support',
     need: 'support.manage',

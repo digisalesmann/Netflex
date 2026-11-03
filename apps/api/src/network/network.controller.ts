@@ -185,7 +185,8 @@ export class NetworkController {
   ) {
     const rows = await this.prisma.networkOperation.findMany({
       where: { propertyId, ...(q.status ? { status: q.status } : {}) },
-      orderBy: { id: 'asc' },
+      // Newest first (id breaks ties so cursor paging stays stable).
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: q.limit + 1,
       ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
       select: {
