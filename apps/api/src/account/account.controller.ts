@@ -36,8 +36,8 @@ const Preferences = z.strictObject({ sms: channelPrefs, email: channelPrefs });
 const Erasure = z.strictObject({ details: z.string().trim().max(1000).optional() });
 
 export const DEFAULT_PREFS = {
-  sms: { expiryReminders: true, receipts: true, outageNotices: true },
-  email: { expiryReminders: false, receipts: false, outageNotices: false },
+  sms: { expiryReminders: false, receipts: false, outageNotices: false },
+  email: { expiryReminders: true, receipts: true, outageNotices: true },
 };
 
 const fmt = (amountMinor: bigint, currency: string) =>
@@ -176,7 +176,7 @@ export class AccountController {
     });
     return {
       preferences: { ...DEFAULT_PREFS, ...(u.notificationPrefs as object) },
-      // Honest about delivery: no SMS/email provider is configured yet (assumption A13).
+      // Honest about delivery: only sign-in codes are emailed so far; SMS is not used.
       channelsAvailable: { sms: false, email: false },
     };
   }

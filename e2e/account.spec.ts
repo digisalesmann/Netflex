@@ -4,25 +4,31 @@ import {
   expectAccessible,
   expectNoHorizontalOverflow,
   otpFor,
-  randomPhone,
+  randomEmail,
 } from './helpers';
 
+/** On phones, Vouchers, Settings and Sign out sit behind the "+" (More) button. */
+async function openMoreIfNeeded(page: import('@playwright/test').Page) {
+  const more = page.getByRole('button', { name: 'More' });
+  if ((await more.isVisible()) && (await more.getAttribute('aria-expanded')) !== 'true')
+    await more.click();
+}
+
 async function signIn(page: import('@playwright/test').Page) {
-  const phone = randomPhone();
+  const email = randomEmail();
   await asNewVisitor(page);
   await page.goto('/account');
   await expect(page).toHaveURL(/\/account\/sign-in/);
-  await page.getByLabel('Phone number').fill(phone);
+  await page.getByLabel('Email address').fill(email);
   await page.getByRole('button', { name: 'Send code' }).click();
   await expect(page.getByLabel('6-digit code')).toBeVisible();
-  const intl = `+234${phone.slice(1)}`;
-  await page.getByLabel('6-digit code').fill(await otpFor(page, intl));
+  await page.getByLabel('6-digit code').fill(await otpFor(page, email));
   await page.getByLabel(/Your name/).fill('Ada');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('heading', { name: 'Hello, Ada' })).toBeVisible();
 }
 
-test('sign in with a phone code, then every account page works and is accessible', async ({
+test('sign in with an email code, then every account page works and is accessible', async ({
   page,
 }) => {
   await signIn(page);
@@ -35,9 +41,11 @@ test('sign in with a phone code, then every account page works and is accessible
     ['Help', 'Help'],
     ['Settings', 'Settings'],
   ] as const) {
+    if (link === 'Vouchers' || link === 'Settings') await openMoreIfNeeded(page);
     await page
       .getByRole('navigation', { name: 'Account' })
       .getByRole('link', { name: link, exact: true })
+      .filter({ visible: true })
       .click();
     await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
     await expectAccessible(page);
@@ -51,7 +59,8 @@ test('buy a plan from the account and see the receipt', async ({ page }) => {
     .getByRole('navigation', { name: 'Account' })
     .getByRole('link', { name: 'Plans', exact: true })
     .click();
-  await page.getByRole('button', { name: 'Buy Day pass' }).click();
+  await page.getByRole('link', { name: 'Buy Day pass' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Checkout' })).toBeVisible();
   await page.getByLabel('Email for the Paystack receipt').fill('ada@example.com');
   await page.getByRole('button', { name: 'Pay ₦500.00' }).click();
   await page.getByRole('button', { name: 'Pay (simulate success)' }).click();
@@ -76,10 +85,10 @@ test('room plans need authorisation from the property office', async ({ page }) 
 test('support request, preferences, data export and sign-out', async ({ page }) => {
   await signIn(page);
   await page.goto('/account/support');
-  await page.getByLabel('What is it about?').selectOption('OUTAGE');
+  await page.getByText('Report an outage', { exact: true }).click();
   await page.getByLabel('Short summary').fill('No internet in G1');
   await page.getByLabel('Details').fill('Nothing has loaded since 9pm in room G1.');
-  await page.getByRole('button', { name: 'Send' }).click();
+  await page.getByRole('button', { name: 'Send message' }).click();
   await expect(page.getByText('Message sent')).toBeVisible();
   await page.reload();
   await expect(page.getByText('No internet in G1')).toBeVisible();
@@ -93,7 +102,11 @@ test('support request, preferences, data export and sign-out', async ({ page }) 
   await page.getByRole('link', { name: 'Download my data' }).click();
   expect((await download).suggestedFilename()).toBe('netflex-my-data.json');
 
-  await page.getByRole('button', { name: 'Sign out', exact: true }).first().click();
+  await openMoreIfNeeded(page);
+  await page
+    .getByRole('button', { name: 'Sign out', exact: true })
+    .filter({ visible: true })
+    .click();
   await expect(page).toHaveURL(/\/$/);
   await page.goto('/account');
   await expect(page).toHaveURL(/\/account\/sign-in/);

@@ -26,8 +26,8 @@ export function AccessManager({ access }: { access: Access }) {
 
   async function addMember(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const phone = String(new FormData(e.currentTarget).get('phone') ?? '');
-    await run(() => api(`${base}/members`, { method: 'POST', body: { phone } }), 'Member added.');
+    const email = String(new FormData(e.currentTarget).get('email') ?? '');
+    await run(() => api(`${base}/members`, { method: 'POST', body: { email } }), 'Member added.');
   }
 
   return (
@@ -86,7 +86,7 @@ export function AccessManager({ access }: { access: Access }) {
             {access.members.map((m) => (
               <li key={m.membershipId} className="row-head">
                 <span>
-                  {m.name} · ending {m.phoneSuffix} {m.role === 'MANAGER' ? '· manager' : ''}
+                  {m.name} · {m.contactHint} {m.role === 'MANAGER' ? '· manager' : ''}
                 </span>
                 {m.role !== 'MANAGER' ? (
                   <span className="actions" style={{ margin: 0 }}>
@@ -127,16 +127,17 @@ export function AccessManager({ access }: { access: Access }) {
           </ul>
           <form onSubmit={(e) => void addMember(e)} style={{ marginTop: 'var(--nf-space-4)' }}>
             <div className="field">
-              <label htmlFor="member-phone">Add a resident by phone number</label>
+              <label htmlFor="member-email">Add a resident by email</label>
               <span className="hint" id="member-hint">
                 They must be registered as living{' '}
                 {access.scope === 'ROOM' ? 'in this room' : 'on this floor'}.
               </span>
               <input
-                id="member-phone"
-                name="phone"
-                type="tel"
-                inputMode="tel"
+                id="member-email"
+                name="email"
+                type="email"
+                inputMode="email"
+                autoComplete="off"
                 required
                 aria-describedby="member-hint"
               />

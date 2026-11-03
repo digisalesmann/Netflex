@@ -1,7 +1,6 @@
-import { BuyPlan } from '@/components/account/BuyPlan';
+import { PlanShop, type Eligibility } from '@/components/account/PlanShop';
 import { Notice } from '@/components/ui';
-import { requireTenant } from '@/lib/account';
-import { scopeLabel } from '@/lib/format';
+import { eligibilityFor, requireTenant } from '@/lib/account';
 import { serverApi } from '@/lib/server-api';
 import { site } from '@/lib/site';
 import type { PublicPlan } from '@/lib/types';
@@ -18,43 +17,29 @@ export default async function AccountPlans({ searchParams }: { searchParams: Par
   const slug = me.residence[0]?.property.slug ?? site.propertySlug;
   const plans = (await serverApi<PublicPlan[]>(`/catalog/properties/${slug}/plans`)).data;
   const home = me.residence.find((r) => r.property.slug === slug);
-  const can = (p: PublicPlan) => {
-    if (p.scope === 'INDIVIDUAL')
-      return { target: { scope: 'INDIVIDUAL' as const }, label: 'for me' };
-    if (!home)
-      return {
-        target: null,
-        label: 'Register with the property office to buy room or floor plans.',
-      };
-    if (p.scope === 'ROOM') {
-      const ok = me.purchaseAuthority.some((a) => a.scope === 'ROOM' && a.roomId === home.room.id);
-      return ok
-        ? {
-            target: { scope: 'ROOM' as const, roomId: home.room.id },
-            label: `for room ${home.room.label}`,
-          }
-        : {
-            target: null,
-            label: `Only residents authorised by the property office can buy for room ${home.room.label}.`,
-          };
-    }
-    const ok = me.purchaseAuthority.some(
-      (a) => a.scope === 'FLOOR' && a.floorId === home.room.floor.id,
-    );
-    return ok
-      ? {
-          target: { scope: 'FLOOR' as const, floorId: home.room.floor.id },
-          label: `for floor ${home.room.floor.label}`,
-        }
-      : {
-          target: null,
-          label: `Only residents authorised by the property office can buy for floor ${home.room.floor.label}.`,
-        };
-  };
+  const can = (p: PublicPlan) => eligibilityFor(me, slug, p);
   const shown = plans?.filter((p) => !renewPlan || p.planId === renewPlan) ?? null;
+  const eligibility: Eligibility = Object.fromEntries(
+    (shown ?? []).map((p) => [p.planVersionId, can(p)]),
+  );
+  const shared = (shown ?? []).filter((p) => p.scope !== 'INDIVIDUAL');
+  const notice = !shared.length
+    ? null
+    : !home
+      ? 'Register with the property office to buy room or floor plans.'
+      : shared.some((p) => !eligibility[p.planVersionId]?.target)
+        ? 'Some room and floor plans need authorisation from the property office.'
+        : null;
   return (
     <>
-      <h1>{renew ? 'Renew your plan' : 'Plans'}</h1>
+      <header className="acct-page-head">
+        <h1 className="acct-hello__title">{renew ? 'Renew your plan' : 'Plans'}</h1>
+        <p className="acct-hello__where">
+          {renew
+            ? 'Renewing adds time after your current plan ends.'
+            : 'Choose a plan, check every term, then pay securely with Paystack.'}
+        </p>
+      </header>
       {renew && shown?.length === 0 ? (
         <Notice tone="warn">
           This plan is no longer on sale. Choose another plan instead of renewing.
@@ -62,30 +47,14 @@ export default async function AccountPlans({ searchParams }: { searchParams: Par
       ) : null}
       {shown === null ? (
         <Notice tone="warn">Plans could not be loaded.</Notice>
-      ) : (
-        <ul className="rows">
-          {shown.map((p) => {
-            const c = can(p);
-            return (
-              <li key={p.planVersionId}>
-                <div className="row-head">
-                  <strong>
-                    {p.name} <span className="muted small">· {scopeLabel[p.scope]}</span>
-                  </strong>
-                  <span className="plan-price">{p.price.display}</span>
-                </div>
-                <p className="muted small">{p.description}</p>
-                <BuyPlan
-                  plan={p}
-                  target={c.target}
-                  targetLabel={c.label}
-                  {...(renew ? { renewEntitlementId: renew } : {})}
-                />
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      ) : shown.length ? (
+        <PlanShop
+          plans={shown}
+          eligibility={eligibility}
+          notice={notice}
+          {...(renew ? { renewEntitlementId: renew } : {})}
+        />
+      ) : null}
     </>
   );
 }

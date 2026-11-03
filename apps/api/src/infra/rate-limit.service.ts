@@ -51,7 +51,7 @@ export const LIMITS = {
   staffLoginPerEmail: { name: 'staff-login-email', limit: 10, windowSeconds: 900 },
   staffLoginPerIp: { name: 'staff-login-ip', limit: 30, windowSeconds: 900 },
   mfaPerSession: { name: 'mfa-session', limit: 6, windowSeconds: 900 },
-  otpRequestPerPhone: { name: 'otp-req-phone', limit: 3, windowSeconds: 900 },
+  otpRequestPerEmail: { name: 'otp-req-email', limit: 3, windowSeconds: 900 },
   otpRequestPerIp: { name: 'otp-req-ip', limit: 10, windowSeconds: 900 },
   otpVerifyPerIp: { name: 'otp-verify-ip', limit: 20, windowSeconds: 900 },
 } as const satisfies Record<string, LimitRule>;

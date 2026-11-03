@@ -36,11 +36,11 @@ export async function joinWifi(page: Page) {
   await expect(page).toHaveURL(/\/connect\?gw=/);
 }
 
-/** Read the last simulated SMS code (development-only outbox). */
-export async function otpFor(page: Page, phone: string): Promise<string> {
+/** Read the last simulated sign-in email code (development-only inbox). */
+export async function otpFor(page: Page, email: string): Promise<string> {
   const r = await page.request.post('/api/v1/dev/otp-outbox', {
     headers: { 'x-netflex-csrf': '1' },
-    data: { phone },
+    data: { email },
   });
   return ((await r.json()) as { data: { code: string } }).data.code;
 }
@@ -50,5 +50,8 @@ export async function asNewVisitor(page: Page) {
   const ip = `10.${[0, 0, 0].map(() => Math.floor(Math.random() * 250) + 1).join('.')}`;
   await page.setExtraHTTPHeaders({ 'x-forwarded-for': ip });
 }
+
+export const randomEmail = () =>
+  `resident-${Date.now().toString(36)}${Math.floor(Math.random() * 1e6)}@example.com`;
 
 export const randomPhone = () => `081${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`;

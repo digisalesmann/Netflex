@@ -38,7 +38,7 @@ import { VouchersController } from './vouchers/vouchers.controller.js';
 import { AuthService } from './auth/auth.service.js';
 import { AuthGuard, CsrfGuard } from './auth/guards.js';
 import { MeController } from './auth/me.controller.js';
-import { FakeOtpSender, OTP_SENDER, UnconfiguredOtpSender } from './auth/otp-sender.js';
+import { FakeMailer, MAILER, ResendMailer, UnconfiguredMailer } from './email/mailer.js';
 import { SessionService } from './auth/session.service.js';
 import { HealthController } from './health/health.controller.js';
 import { InfraModule } from './infra/infra.module.js';
@@ -104,7 +104,7 @@ export class AppModule {
         AccountController,
         // Development/test simulators exist only when a test-only provider is active.
         ...(config.PAYMENT_PROVIDER === 'fake' ||
-        config.OTP_PROVIDER === 'fake' ||
+        config.EMAIL_PROVIDER === 'fake' ||
         config.NETWORK_ADAPTER === 'fake'
           ? [DevSimulatorController]
           : []),
@@ -153,11 +153,17 @@ export class AppModule {
             }),
         },
         {
-          provide: OTP_SENDER,
+          provide: MAILER,
           useFactory: () =>
-            config.OTP_PROVIDER === 'fake'
-              ? new FakeOtpSender(config.NETFLEX_ENV)
-              : new UnconfiguredOtpSender(),
+            config.EMAIL_PROVIDER === 'fake'
+              ? new FakeMailer(config.NETFLEX_ENV)
+              : config.EMAIL_PROVIDER === 'resend'
+                ? new ResendMailer({
+                    apiKey: config.RESEND_API_KEY as string,
+                    from: config.EMAIL_FROM as string,
+                    replyTo: config.EMAIL_REPLY_TO,
+                  })
+                : new UnconfiguredMailer(),
         },
         // Order matters: CSRF check runs before authentication.
         { provide: APP_GUARD, useClass: CsrfGuard },

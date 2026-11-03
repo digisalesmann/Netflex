@@ -4,7 +4,7 @@
  * legal review) is configured here — never invented in page copy.
  */
 export const site = {
-  brand: 'NetFlex',
+  brand: 'Netflex',
   propertySlug: process.env.NETFLEX_PROPERTY_SLUG ?? 'demo-lodge',
   siteUrl: process.env.PUBLIC_WEB_URL ?? 'http://localhost:3000',
   /** Set to "true" only after the owner's legal adviser has reviewed the policies. */

@@ -23,6 +23,8 @@
     "db:migrate:dev": "npm run migrate:dev -w @netflex/database",
     "db:migrate:deploy": "npm run migrate:deploy -w @netflex/database",
     "db:migrate:status": "npm run migrate:status -w @netflex/database",
+    "db:seed:dev": "node --env-file=.env scripts/dev/seed.mjs",
+    "db:seed:catalog": "node --env-file=.env scripts/dev/demo-catalog.mjs",
     "services:start": "node scripts/dev-services.mjs start",
     "services:stop": "node scripts/dev-services.mjs stop",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm test",

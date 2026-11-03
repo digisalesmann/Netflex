@@ -19,13 +19,14 @@ import {
   type RequestMetaValue,
   RequireKind,
 } from '../auth/decorators.js';
-import { ZodPipe, pagination, phoneE164, reason, uuid } from '../common/zod.js';
+import { ZodPipe, email, pagination, phoneE164, reason, uuid } from '../common/zod.js';
 import { TenancyService } from './tenancy.service.js';
 
 const isoDate = z.coerce.date();
 const ListQuery = pagination.extend({ search: z.string().trim().min(1).max(60).optional() });
 const Onboard = z.strictObject({
-  phone: phoneE164,
+  email,
+  phone: phoneE164.optional(),
   displayName: z.string().trim().min(1).max(120),
   roomId: uuid,
   startsAt: isoDate,

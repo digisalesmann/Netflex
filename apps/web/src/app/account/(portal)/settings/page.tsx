@@ -23,14 +23,18 @@ export default async function SettingsPage() {
   ]);
   return (
     <>
-      <h1>Settings</h1>
+      <header className="acct-page-head">
+        <h1 className="acct-hello__title">Settings</h1>
+        <p className="acct-hello__where">Your profile, messages, devices and data.</p>
+      </header>
       <Settings
         name={me.user.displayName}
+        email={me.user.email}
         prefs={
           prefs.data ?? {
             preferences: {
-              sms: { expiryReminders: true, receipts: true, outageNotices: true },
-              email: { expiryReminders: false, receipts: false, outageNotices: false },
+              sms: { expiryReminders: false, receipts: false, outageNotices: false },
+              email: { expiryReminders: true, receipts: true, outageNotices: true },
             } as never,
             channelsAvailable: { sms: false, email: false },
           }

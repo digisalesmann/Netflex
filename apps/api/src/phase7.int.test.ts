@@ -7,6 +7,7 @@ import {
   CSRF,
   XFF,
   createStaff,
+  randomEmail,
   randomPhone,
   signInStaff,
   startHarness,
@@ -29,23 +30,23 @@ const mac = () =>
   ).join(':');
 
 async function tenant() {
-  const phone = randomPhone();
+  const email = randomEmail();
   await request(h.server)
     .post('/api/v1/auth/tenant/otp/request')
     .set(CSRF)
     .set(XFF())
-    .send({ phone })
+    .send({ email })
     .expect(202);
-  const code = (await request(h.server).post('/api/v1/dev/otp-outbox').set(CSRF).send({ phone }))
+  const code = (await request(h.server).post('/api/v1/dev/otp-outbox').set(CSRF).send({ email }))
     .body.data.code as string;
   const agent = request.agent(h.server);
   await agent
     .post('/api/v1/auth/tenant/otp/verify')
     .set(CSRF)
     .set(XFF())
-    .send({ phone, code })
+    .send({ email, code })
     .expect(200);
-  return { agent, phone, userId: (await agent.get('/api/v1/me')).body.data.user.id as string };
+  return { agent, email, userId: (await agent.get('/api/v1/me')).body.data.user.id as string };
 }
 
 beforeAll(async () => {
@@ -273,7 +274,7 @@ describe('development simulators', () => {
 
   it('do not exist in a configuration without test-only providers', async () => {
     const real = await startHarness({
-      OTP_PROVIDER: 'none',
+      EMAIL_PROVIDER: 'none',
       NETWORK_ADAPTER: 'none',
       PAYMENT_PROVIDER: 'paystack',
       PAYSTACK_SECRET_KEY: 'sk_test_placeholderkey000000',
@@ -283,7 +284,7 @@ describe('development simulators', () => {
       await request(real.server)
         .post('/api/v1/dev/otp-outbox')
         .set(CSRF)
-        .send({ phone: randomPhone() })
+        .send({ email: randomEmail() })
         .expect(404);
       await request(real.server).get('/api/v1/dev/fake-checkout/NFX-ANY').expect(404);
     } finally {

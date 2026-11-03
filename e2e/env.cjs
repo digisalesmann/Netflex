@@ -16,7 +16,7 @@ const E2E = {
   VOUCHER_PEPPER: 'e2e-voucher-pepper-0123456789abcdef0123',
   AUTH_SECRET: 'e2e-auth-secret-0123456789abcdef0123456',
   PAYMENT_PROVIDER: 'fake',
-  OTP_PROVIDER: 'fake',
+  EMAIL_PROVIDER: 'fake',
   NETWORK_ADAPTER: 'fake',
   PAID_ACCESS_ENABLED: 'true',
   NETFLEX_PROPERTY_SLUG: 'e2e-lodge',

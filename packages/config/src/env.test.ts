@@ -36,9 +36,21 @@ describe('loadConfig', () => {
   it.each([
     ['PAYMENT_PROVIDER', 'fake'],
     ['NETWORK_ADAPTER', 'fake'],
-    ['OTP_PROVIDER', 'fake'],
+    ['EMAIL_PROVIDER', 'fake'],
   ])('rejects %s=%s in production', (key, value) => {
     expect(() => loadConfig({ ...prod, [key]: value })).toThrow(ConfigError);
+  });
+
+  it('requires a Resend key and sender when EMAIL_PROVIDER=resend', () => {
+    expect(() => loadConfig({ ...prod, EMAIL_PROVIDER: 'resend' })).toThrow(ConfigError);
+    expect(() =>
+      loadConfig({
+        ...prod,
+        EMAIL_PROVIDER: 'resend',
+        RESEND_API_KEY: 're_test_key',
+        EMAIL_FROM: 'ND Lodge Wi-Fi <wifi@example.com>',
+      }),
+    ).not.toThrow();
   });
 
   it('rejects fakes in staging too', () => {

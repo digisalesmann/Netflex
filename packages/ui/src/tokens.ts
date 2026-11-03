@@ -146,7 +146,7 @@ function groupVars(prefix: string, group: Record<string, string>): string {
 
 /**
  * Generate the CSS custom properties. Dark mode follows the OS unless the page
- * sets data-theme explicitly.
+ * sets data-theme explicitly (the web app currently pins data-theme="light").
  */
 export function tokensToCss(): string {
   const statics = [
@@ -176,7 +176,11 @@ ${colorVars(colors.light)}
 ${colorVars(colors.dark).replace(/^/gm, '  ')}
   }
 }
+:root[data-theme='light'] {
+  color-scheme: light;
+}
 :root[data-theme='dark'] {
+  color-scheme: dark;
 ${colorVars(colors.dark)}
 }
 @media (prefers-reduced-motion: reduce) {

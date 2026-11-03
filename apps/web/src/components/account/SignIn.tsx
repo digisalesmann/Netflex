@@ -5,20 +5,22 @@ import { ApiError, api } from '@/lib/api';
 import { Notice } from '../ui';
 
 export function SignIn({ next }: { next: string }) {
-  const [step, setStep] = useState<'phone' | 'code'>('phone');
-  const [phone, setPhone] = useState('');
+  const [step, setStep] = useState<'email' | 'code'>('email');
+  const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [unavailable, setUnavailable] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function request(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const p = String(new FormData(e.currentTarget).get('phone') ?? '');
+    const p = String(new FormData(e.currentTarget).get('email') ?? '')
+      .trim()
+      .toLowerCase();
     setBusy(true);
     setError(null);
     try {
-      await api('/auth/tenant/otp/request', { method: 'POST', body: { phone: p } });
-      setPhone(p);
+      await api('/auth/tenant/otp/request', { method: 'POST', body: { email: p } });
+      setEmail(p);
       setStep('code');
     } catch (err) {
       if (err instanceof ApiError && err.status === 503) setUnavailable(true);
@@ -26,7 +28,7 @@ export function SignIn({ next }: { next: string }) {
         setError(
           err instanceof ApiError
             ? err.code === 'VALIDATION_FAILED'
-              ? 'Enter a valid phone number, e.g. 0803 000 0000.'
+              ? 'Enter a valid email address, e.g. amara@gmail.com.'
               : err.message
             : 'Try again.',
         );
@@ -44,7 +46,7 @@ export function SignIn({ next }: { next: string }) {
       await api('/auth/tenant/otp/verify', {
         method: 'POST',
         body: {
-          phone,
+          email,
           code: String(f.get('code') ?? '').trim(),
           displayName: String(f.get('name') ?? '').trim() || undefined,
         },
@@ -59,9 +61,9 @@ export function SignIn({ next }: { next: string }) {
 
   if (unavailable) {
     return (
-      <Notice tone="warn" title="Phone sign-in isn’t available yet">
+      <Notice tone="warn" title="Email sign-in isn’t available yet">
         <p>
-          Text messages aren&apos;t set up for this property yet. You can still buy a personal plan
+          Sign-in emails aren&apos;t set up for this property yet. You can still buy a personal plan
           on the Wi-Fi sign-in page without an account. For room plans or help, contact the property
           office.
         </p>
@@ -69,23 +71,25 @@ export function SignIn({ next }: { next: string }) {
     );
   }
 
-  return step === 'phone' ? (
+  return step === 'email' ? (
     <form onSubmit={(e) => void request(e)} noValidate>
       {error ? <Notice tone="bad">{error}</Notice> : null}
       <div className="field">
-        <label htmlFor="phone">Phone number</label>
-        <span className="hint" id="phone-hint">
-          We&apos;ll text you a 6-digit code.
+        <label htmlFor="email">Email address</label>
+        <span className="hint" id="email-hint">
+          We&apos;ll email you a 6-digit code.
         </span>
         <input
-          id="phone"
-          name="phone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
+          id="email"
+          name="email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          autoCapitalize="none"
+          spellCheck={false}
           required
-          aria-describedby="phone-hint"
-          placeholder="0803 000 0000"
+          aria-describedby="email-hint"
+          placeholder="you@example.com"
         />
       </div>
       <button className="button button--block" type="submit" disabled={busy}>
@@ -94,7 +98,10 @@ export function SignIn({ next }: { next: string }) {
     </form>
   ) : (
     <form onSubmit={(e) => void verify(e)} noValidate>
-      <p>We sent a code to {phone}. It expires in 5 minutes.</p>
+      <p>
+        We sent a code to <strong>{email}</strong>. It expires in 5 minutes. Check your spam folder
+        if it isn&apos;t there.
+      </p>
       {error ? <Notice tone="bad">{error}</Notice> : null}
       <div className="field">
         <label htmlFor="code">6-digit code</label>
@@ -117,8 +124,8 @@ export function SignIn({ next }: { next: string }) {
         {busy ? 'Checking…' : 'Sign in'}
       </button>
       <p className="small" style={{ marginTop: 'var(--nf-space-4)' }}>
-        <button type="button" className="linkbutton" onClick={() => setStep('phone')}>
-          Use a different number or resend
+        <button type="button" className="linkbutton" onClick={() => setStep('email')}>
+          Use a different email or resend
         </button>
       </p>
     </form>

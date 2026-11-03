@@ -44,7 +44,7 @@ npm run start:worker
 npm run start:web                 # http://localhost:3000
 ```
 
-To click through the whole journey locally with simulators: set `PAYMENT_PROVIDER=fake`, `OTP_PROVIDER=fake`, `NETWORK_ADAPTER=fake`, `PAID_ACCESS_ENABLED=true` and `TRUST_PROXY=loopback` in `.env`, register a `FAKE` gateway, then open `http://localhost:3000/api/v1/dev/fake-gateway/join`.
+To click through the whole journey locally with simulators: set `PAYMENT_PROVIDER=fake`, `EMAIL_PROVIDER=fake`, `NETWORK_ADAPTER=fake`, `PAID_ACCESS_ENABLED=true` and `TRUST_PROXY=loopback` in `.env`, register a `FAKE` gateway, then open `http://localhost:3000/api/v1/dev/fake-gateway/join`.
 
 ## Layout
 

@@ -8,6 +8,7 @@ import {
   CSRF,
   XFF,
   createStaff,
+  randomEmail,
   randomPhone,
   signInStaff,
   startHarness,
@@ -16,12 +17,12 @@ import {
   type Harness,
 } from '../../../scripts/test/api-harness.js';
 import { createPaymentProcessor } from '../../worker/src/processors.js';
-import { OTP_SENDER, type FakeOtpSender } from './auth/otp-sender.js';
+import { MAILER, type FakeMailer } from './email/mailer.js';
 import { PAYMENT_ENGINE, PAYMENT_PROVIDER } from './infra/tokens.js';
 import { RedemptionService } from './vouchers/redemption.service.js';
 
 let h: Harness;
-let otp: FakeOtpSender;
+let otp: FakeMailer;
 let fake: FakePaymentProvider;
 let engine: PaymentEngine;
 let redemption: RedemptionService;
@@ -81,28 +82,30 @@ async function publish(propertyId: string, agent: Agent, over: Record<string, un
 /** Signed-in tenant living in `roomId`. */
 async function resident(roomId: string) {
   const phone = randomPhone();
+  const email = randomEmail();
   const on = await ag.admin
     .post(`${base()}/tenants`)
     .set(CSRF)
-    .send({ phone, displayName: `T ${uniq()}`, roomId, startsAt: '2026-01-01T00:00:00Z' });
+    .send({ email, phone, displayName: `T ${uniq()}`, roomId, startsAt: '2026-01-01T00:00:00Z' });
   expect(on.status).toBe(201);
   await request(h.server)
     .post('/api/v1/auth/tenant/otp/request')
     .set(CSRF)
     .set(XFF())
-    .send({ phone })
+    .send({ email })
     .expect(202);
   const agent = request.agent(h.server);
   await agent
     .post('/api/v1/auth/tenant/otp/verify')
     .set(CSRF)
     .set(XFF())
-    .send({ phone, code: otp.lastCode(phone) })
+    .send({ email, code: otp.lastCode(email) })
     .expect(200);
   return {
     agent,
     userId: on.body.data.userId as string,
     phone,
+    email,
     assignmentId: on.body.data.assignmentId as string,
   };
 }
@@ -132,7 +135,7 @@ const outboxCount = (type: string, entitlementId: string) =>
 
 beforeAll(async () => {
   h = await startHarness({ PAID_ACCESS_ENABLED: 'true' });
-  otp = h.app.get(OTP_SENDER);
+  otp = h.app.get(MAILER);
   fake = h.app.get(PAYMENT_PROVIDER);
   engine = h.app.get(PAYMENT_ENGINE);
   redemption = h.app.get(RedemptionService);
@@ -542,7 +545,7 @@ describe('room groups', () => {
     const eb = `${base()}/entitlements/${v.entitlementId}`;
 
     // Staff add the lead and hand them the manager role.
-    const m1 = await ag.admin.post(`${eb}/members`).set(CSRF).send({ phone: lead.phone });
+    const m1 = await ag.admin.post(`${eb}/members`).set(CSRF).send({ email: lead.email });
     expect(m1.status).toBe(201);
     await ag.admin
       .post(`${eb}/transfer-manager`)
@@ -554,29 +557,29 @@ describe('room groups', () => {
     await lead.agent
       .post(`/api/v1/me/access/${v.entitlementId}/members`)
       .set(CSRF)
-      .send({ phone: outsider.phone })
+      .send({ email: outsider.email })
       .expect(422);
     const add = await lead.agent
       .post(`/api/v1/me/access/${v.entitlementId}/members`)
       .set(CSRF)
-      .send({ phone: mate.phone });
+      .send({ email: mate.email });
     expect(add.status).toBe(201);
     await lead.agent
       .post(`/api/v1/me/access/${v.entitlementId}/members`)
       .set(CSRF)
-      .send({ phone: mate.phone })
+      .send({ email: mate.email })
       .expect(409);
     await lead.agent
       .post(`/api/v1/me/access/${v.entitlementId}/members`)
       .set(CSRF)
-      .send({ phone: mate2.phone })
+      .send({ email: mate2.email })
       .expect(201);
     // Cap = 3 (lead + 2).
     const extra = await resident(P.room);
     await lead.agent
       .post(`/api/v1/me/access/${v.entitlementId}/members`)
       .set(CSRF)
-      .send({ phone: extra.phone })
+      .send({ email: extra.email })
       .expect(422);
 
     // Members can use it; they can't add people; outsiders can't even see it.
@@ -590,12 +593,12 @@ describe('room groups', () => {
     await mate.agent
       .post(`/api/v1/me/access/${v.entitlementId}/members`)
       .set(CSRF)
-      .send({ phone: extra.phone })
+      .send({ email: extra.email })
       .expect(404);
     await outsider.agent
       .post(`/api/v1/me/access/${v.entitlementId}/members`)
       .set(CSRF)
-      .send({ phone: extra.phone })
+      .send({ email: extra.email })
       .expect(404);
     const mateView = (await mate.agent.get('/api/v1/me/access')).body.data.find(
       (x: { entitlementId: string }) => x.entitlementId === v.entitlementId,
@@ -634,7 +637,7 @@ describe('room groups', () => {
     await ag.admin
       .post(`${base()}/entitlements/${v.entitlementId}/members`)
       .set(CSRF)
-      .send({ phone: mover.phone })
+      .send({ email: mover.email })
       .expect(201);
     expect(await redeem(v.code, { userId: mover.userId })).toMatchObject({ ok: true });
     await ag.admin
@@ -668,7 +671,7 @@ describe('room groups', () => {
     await ag.admin
       .post(`${base()}/entitlements/${v.entitlementId}/members`)
       .set(CSRF)
-      .send({ phone: t.phone })
+      .send({ email: t.email })
       .expect(422);
   });
 });

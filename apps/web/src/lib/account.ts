@@ -1,8 +1,15 @@
 import { redirect } from 'next/navigation';
 import { serverApi } from './server-api';
+import type { PublicPlan } from './types';
 
 export interface Me {
-  user: { id: string; kind: 'STAFF' | 'TENANT'; displayName: string; phoneE164: string | null };
+  user: {
+    id: string;
+    kind: 'STAFF' | 'TENANT';
+    displayName: string;
+    email: string | null;
+    phoneE164: string | null;
+  };
   residence: {
     startsAt: string;
     property: { id: string; name: string; slug: string };
@@ -46,7 +53,7 @@ export interface Access {
     membershipId: string;
     userId: string;
     name: string;
-    phoneSuffix: string;
+    contactHint: string;
     role: string;
   }[];
   usage: { available: boolean; note: string };
@@ -71,3 +78,42 @@ export const STATE_LABEL: Record<string, { tone: 'ok' | 'warn' | 'bad' | 'info';
     ACCESS_REVOKED: { tone: 'bad', label: 'Cancelled' },
     PROVISIONING_NEEDS_ATTENTION: { tone: 'warn', label: 'Provisioning needs attention' },
   };
+
+export type PurchaseTarget =
+  { scope: 'INDIVIDUAL' } | { scope: 'ROOM'; roomId: string } | { scope: 'FLOOR'; floorId: string };
+export type Eligible = { target: PurchaseTarget | null; label: string };
+
+/** Who this resident may buy a plan for, or why they can't. */
+export function eligibilityFor(me: Me, slug: string, p: PublicPlan): Eligible {
+  const home = me.residence.find((r) => r.property.slug === slug);
+  if (p.scope === 'INDIVIDUAL') return { target: { scope: 'INDIVIDUAL' }, label: 'Just for you' };
+  if (!home)
+    return {
+      target: null,
+      label: 'Register with the property office to buy room or floor plans.',
+    };
+  if (p.scope === 'ROOM') {
+    const ok = me.purchaseAuthority.some((a) => a.scope === 'ROOM' && a.roomId === home.room.id);
+    return ok
+      ? {
+          target: { scope: 'ROOM', roomId: home.room.id },
+          label: `For room ${home.room.label}`,
+        }
+      : {
+          target: null,
+          label: `Only residents authorised by the property office can buy for room ${home.room.label}.`,
+        };
+  }
+  const ok = me.purchaseAuthority.some(
+    (a) => a.scope === 'FLOOR' && a.floorId === home.room.floor.id,
+  );
+  return ok
+    ? {
+        target: { scope: 'FLOOR', floorId: home.room.floor.id },
+        label: `For floor ${home.room.floor.label}`,
+      }
+    : {
+        target: null,
+        label: `Only residents authorised by the property office can buy for floor ${home.room.floor.label}.`,
+      };
+}

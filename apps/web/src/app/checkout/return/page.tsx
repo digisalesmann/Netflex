@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { CheckoutReturn } from '@/components/portal/CheckoutReturn';
-import { site } from '@/lib/site';
+import { Logo } from '@/components/Logo';
 
 export const metadata: Metadata = {
   title: 'Payment status',
@@ -15,7 +15,9 @@ export default async function ReturnPage({ searchParams }: { searchParams: Param
   const valid = order && /^[0-9a-f-]{36}$/i.test(order) ? order : null;
   return (
     <main id="main" className="container narrow portal">
-      <p className="eyebrow">{site.brand}</p>
+      <div className="page-logo">
+        <Logo />
+      </div>
       <CheckoutReturn orderIdFromUrl={valid} />
     </main>
   );

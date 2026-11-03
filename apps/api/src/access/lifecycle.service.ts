@@ -132,7 +132,7 @@ export class LifecycleService {
    * Add a housemate to room/floor access. They must be a registered tenant who
    * currently lives in that room (ROOM) or on that floor (FLOOR), within the plan's cap.
    */
-  async addMember(tx: Tx, entitlementId: string, phone: string, actor: Actor, propertyId?: string) {
+  async addMember(tx: Tx, entitlementId: string, email: string, actor: Actor, propertyId?: string) {
     const e = await tx.entitlement.findFirst({
       where: { id: entitlementId, ...(propertyId ? { propertyId } : {}) },
       include: { subscription: true },
@@ -142,7 +142,7 @@ export class LifecycleService {
     if (['EXPIRED', 'REVOKED'].includes(e.status)) throw conflict('This access has ended.');
     const user = await tx.user.findFirst({
       where: {
-        phoneE164: phone,
+        email,
         kind: 'TENANT',
         status: 'ACTIVE',
         assignments: {
@@ -311,7 +311,9 @@ export class LifecycleService {
             planVersion: { select: { planId: true } },
             memberships: {
               where: { removedAt: null },
-              include: { user: { select: { id: true, displayName: true, phoneE164: true } } },
+              include: {
+                user: { select: { id: true, displayName: true, email: true, phoneE164: true } },
+              },
             },
           },
         },
@@ -357,7 +359,7 @@ export class LifecycleService {
         scope: e.scope,
         role,
         myMembershipId: me?.id ?? null,
-        state: accessState(e.status, e.observedNetworkState, remaining),
+        state: accessState(e.status, e.observedNetworkState, remaining, termSeconds(e)),
         startsAt: e.startsAt?.toISOString() ?? null,
         expiresAt: e.expiresAt?.toISOString() ?? null,
         expiresAtLocal: fmt(e.expiresAt),
@@ -383,7 +385,7 @@ export class LifecycleService {
                 membershipId: m.id,
                 userId: m.user.id,
                 name: m.user.displayName,
-                phoneSuffix: (m.user.phoneE164 ?? '').slice(-4),
+                contactHint: contactHint(m.user.email, m.user.phoneE164),
                 role: m.role,
               }))
             : undefined,
@@ -394,11 +396,28 @@ export class LifecycleService {
   }
 }
 
+/** Seconds between an entitlement's start and its (possibly renewed) expiry, if known. */
+export function termSeconds(e: { startsAt: Date | null; expiresAt: Date | null }): number | null {
+  return e.startsAt && e.expiresAt
+    ? Math.max(0, Math.floor((e.expiresAt.getTime() - e.startsAt.getTime()) / 1000))
+    : null;
+}
+
+/**
+ * "Ending soon" window: the last 24 hours, or the last fifth of a shorter term
+ * (so a fresh 1-day pass does not read "ending soon" from its first minute).
+ */
+export function expiringSoonWindow(totalSeconds: number | null): number {
+  const day = 24 * 3600;
+  return totalSeconds && totalSeconds > 0 ? Math.min(day, Math.floor(totalSeconds / 5)) : day;
+}
+
 /** Customer-facing status that never claims a connection the gateway hasn't confirmed. */
 export function accessState(
   status: string,
   observed: string | null,
   remainingSeconds: number | null,
+  totalSeconds: number | null = null,
 ): string {
   switch (status) {
     case 'PENDING_ACTIVATION':
@@ -409,7 +428,9 @@ export function accessState(
       return 'PROVISIONING_NEEDS_ATTENTION';
     case 'ACTIVE':
       if (observed !== 'ACTIVE') return 'ACCESS_BEING_CONFIGURED';
-      return remainingSeconds !== null && remainingSeconds < 24 * 3600 ? 'EXPIRING_SOON' : 'ACTIVE';
+      return remainingSeconds !== null && remainingSeconds < expiringSoonWindow(totalSeconds)
+        ? 'EXPIRING_SOON'
+        : 'ACTIVE';
     case 'SUSPENDED':
       return 'ACCESS_SUSPENDED';
     case 'EXPIRED':
@@ -419,4 +440,13 @@ export function accessState(
     default:
       return 'UNKNOWN';
   }
+}
+
+/** "am•••@gmail.com" (or "•••2279" for older phone-only accounts). Never the full address. */
+function contactHint(email: string | null, phone: string | null): string {
+  if (email) {
+    const [name = '', domain = ''] = email.split('@');
+    return `${name.slice(0, 2)}•••@${domain}`;
+  }
+  return phone ? `•••${phone.slice(-4)}` : '';
 }

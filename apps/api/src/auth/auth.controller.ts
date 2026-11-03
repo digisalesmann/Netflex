@@ -2,7 +2,7 @@ import { Body, Controller, HttpCode, Inject, Post, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { z } from 'zod';
-import { ZodPipe, email, phoneE164 } from '../common/zod.js';
+import { ZodPipe, email } from '../common/zod.js';
 import { AuthService, type IssuedSession } from './auth.service.js';
 import type { AuthContext } from './auth.types.js';
 import {
@@ -26,9 +26,9 @@ const PasswordChange = z.strictObject({
   currentPassword: z.string().min(1).max(200),
   newPassword: z.string().min(1).max(200),
 });
-const OtpRequest = z.strictObject({ phone: phoneE164 });
+const OtpRequest = z.strictObject({ email });
 const OtpVerify = z.strictObject({
-  phone: phoneE164,
+  email,
   code: z.string().trim().max(10),
   displayName: z.string().trim().min(1).max(120).optional(),
 });
@@ -101,8 +101,8 @@ export class AuthController {
     @Body(new ZodPipe(OtpRequest)) body: z.infer<typeof OtpRequest>,
     @RequestMeta() meta: RequestMetaValue,
   ) {
-    await this.auth.requestOtp(body.phone, meta);
-    return { message: 'If this number can sign in, a code is on its way.' };
+    await this.auth.requestOtp(body.email, meta);
+    return { message: 'If this email can sign in, a code is on its way.' };
   }
 
   @Public()
@@ -115,7 +115,7 @@ export class AuthController {
   ) {
     return this.setCookie(
       res,
-      await this.auth.verifyOtp(body.phone, body.code, body.displayName, meta),
+      await this.auth.verifyOtp(body.email, body.code, body.displayName, meta),
     );
   }
 

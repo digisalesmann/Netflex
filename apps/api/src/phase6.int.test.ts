@@ -259,8 +259,8 @@ describe('activation is confirmed by read-back before access counts as active', 
     expect(op?.status).toBe('SUCCEEDED');
     expect(op?.verification).toMatchObject({ inSync: true });
     const detail = await ag.admin.get(`${base()}/entitlements/${a.entitlementId}`).expect(200);
-    // A 1-day plan is always within 24 h of expiry, so the confirmed-active state reads EXPIRING_SOON.
-    expect(detail.body.data.customerState).toBe('EXPIRING_SOON');
+    // A freshly started 1-day plan is not "ending soon" (window = last fifth of the term).
+    expect(detail.body.data.customerState).toBe('ACTIVE');
   });
 
   it('a change the gateway "accepts" but does not apply is caught and retried', async () => {

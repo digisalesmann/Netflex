@@ -17,13 +17,13 @@ Status: Phase 2, implemented and tested against PostgreSQL 17 + Redis (see `apps
 | Sign-in limits   | 10 attempts / 15 min per email, 30 / 15 min per IP; 6 MFA attempts / 15 min per session                |
 | Failed sign-ins  | Audited (`auth.staff.login_failed`, `auth.staff.mfa_failed`) without the attempted secret              |
 
-## Tenant sign-in (phone one-time code)
+## Tenant sign-in (email one-time code)
 
-- `POST /auth/tenant/otp/request` always answers `202 "If this number can sign in, a code is on its way."`. Codes are never sent to staff phone numbers.
-- Codes: 6 digits, 5 minutes, single use, 5 attempts, stored only as an HMAC.
-- Limits: 3 requests / 15 min per phone, 10 per IP; 20 verifications / 15 min per IP.
-- First successful sign-in creates a tenant account (guest checkout allowed, assumption A12).
-- **Blocked:** no SMS provider is chosen (A13). With `OTP_PROVIDER=none` (default) these endpoints return 503. `OTP_PROVIDER=fake` is a test double, refused in staging/production.
+- `POST /auth/tenant/otp/request` with `{ email }` always answers `202 "If this email can sign in, a code is on its way."`. Codes are never sent to staff email addresses.
+- Codes: 6 digits, 5 minutes, single use, 5 attempts, stored only as an HMAC. Emails are lower-cased before use.
+- Limits: 3 requests / 15 min per email, 10 per IP; 20 verifications / 15 min per IP.
+- First successful sign-in creates a tenant account (guest checkout allowed, assumption A12). Residents the office onboards with an email sign in to that same account.
+- Delivery: Resend (`EMAIL_PROVIDER=resend`). With `EMAIL_PROVIDER=none` (default) these endpoints return 503. `EMAIL_PROVIDER=fake` is a test double, refused in staging/production. SMS is not used.
 
 ## Sessions
 

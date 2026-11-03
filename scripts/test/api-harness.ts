@@ -20,7 +20,7 @@ export interface Harness {
 }
 
 export async function startHarness(overrides: Record<string, string> = {}): Promise<Harness> {
-  const config = testConfig({ OTP_PROVIDER: 'fake', ...overrides });
+  const config = testConfig({ EMAIL_PROVIDER: 'fake', ...overrides });
   const app = await createApp(config);
   await app.init();
   const prisma = createPrismaClient(config.DATABASE_URL);
@@ -40,6 +40,7 @@ export const uniq = () => randomBytes(4).toString('hex');
 export const XFF = () => ({
   'x-forwarded-for': `10.${[0, 0, 0].map(() => randomBytes(1)[0]).join('.')}`,
 });
+export const randomEmail = () => `t-${randomBytes(6).toString('hex')}@example.com`;
 export const randomPhone = () =>
   `+23481${String(randomBytes(4).readUInt32BE(0) % 100_000_000).padStart(8, '0')}`;
 

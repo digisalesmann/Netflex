@@ -15,15 +15,14 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#fbfaf8' },
-    { media: '(prefers-color-scheme: dark)', color: '#121211' },
-  ],
+  // Always light, whatever the device's dark-mode setting (owner preference).
+  colorScheme: 'light',
+  themeColor: '#fbfaf8',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="light">
       <body>
         <a className="skip-link" href="#main">
           Skip to content

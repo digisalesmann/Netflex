@@ -27,13 +27,37 @@ for (const [path, heading] of PAGES) {
 
 test('plans page shows real catalog data with full pre-purchase terms', async ({ page }) => {
   await page.goto('/plans');
+  // Phones and wide screens use different layouts; check whichever is on screen.
+  const seen = (t: string | RegExp) =>
+    page.getByText(t, { exact: false }).filter({ visible: true }).first();
   await expect(page.getByRole('heading', { name: /Day pass/ })).toBeVisible();
-  await expect(page.getByText('₦500.00').first()).toBeVisible();
-  await expect(
-    page.getByText('Time starts when you first enter your code.', { exact: false }).first(),
-  ).toBeVisible();
-  await expect(page.getByText(/not guaranteed/i).first()).toBeVisible();
-  await expect(page.getByText(/Full refund before first use/).first()).toBeVisible();
+  // On phones each plan is a collapsed row: open the first to see its full terms.
+  const row = page.locator('summary').filter({ visible: true }).first();
+  if (await row.count()) await row.click();
+  await expect(seen('₦500.00')).toBeVisible();
+  await expect(seen('Time starts when you first enter your code.')).toBeVisible();
+  await expect(seen(/not guaranteed/i)).toBeVisible();
+  await expect(seen(/Full refund before first use/)).toBeVisible();
+});
+
+test('plans can be filtered by audience, and the view can be shared by link', async ({ page }) => {
+  await page.goto('/plans');
+  const audience = page.getByRole('group', { name: 'Who the plan is for' });
+  await expect(audience.getByRole('button', { name: /For you/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await audience.getByRole('button', { name: /Whole room/ }).click();
+  await expect(page).toHaveURL(/\/plans\?for=room$/);
+  await expect(page.getByRole('heading', { name: 'Room week' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Day pass' })).toHaveCount(0);
+
+  await page.goto('/plans?for=room');
+  await expect(audience.getByRole('button', { name: /Whole room/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expectAccessible(page);
 });
 
 test('legal pages say they are drafts until reviewed; copy makes no forbidden promises', async ({
@@ -58,7 +82,7 @@ test('mobile navigation menu works with the keyboard', async ({ page }, info) =>
   await toggle.focus();
   await page.keyboard.press('Enter');
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-  await page.getByRole('link', { name: 'FAQ' }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'FAQ' }).click();
   await expect(page).toHaveURL(/\/faq$/);
 });
 

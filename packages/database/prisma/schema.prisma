@@ -349,7 +349,10 @@ model Session {
 
 model OtpChallenge {
   id           String    @id @default(uuid()) @db.Uuid
-  phoneE164    String    @db.VarChar(16)
+  /// Legacy phone challenges (SMS is no longer used).
+  phoneE164    String?   @db.VarChar(16)
+  /// Lower-cased email the code was sent to.
+  email        String?   @db.VarChar(254)
   /// SIGN_IN, VERIFY_PHONE, RECOVERY
   purpose      String    @db.VarChar(24)
   /// HMAC of the code. Never the code.
@@ -361,6 +364,7 @@ model OtpChallenge {
   consumedAt   DateTime? @db.Timestamptz(3)
 
   @@index([phoneE164, createdAt])
+  @@index([email, createdAt])
   @@map("otp_challenges")
 }
 

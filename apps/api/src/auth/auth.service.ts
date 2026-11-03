@@ -22,7 +22,8 @@ import { LIMITS, RateLimitService } from '../infra/rate-limit.service.js';
 import { CONFIG, PRISMA } from '../infra/tokens.js';
 import type { AuthContext } from './auth.types.js';
 import type { RequestMetaValue } from './decorators.js';
-import { OTP_SENDER, type OtpSender } from './otp-sender.js';
+import { MAILER, type Mailer } from '../email/mailer.js';
+import { signInCodeEmail } from '../email/templates.js';
 import { SessionService } from './session.service.js';
 
 const OTP_TTL_MS = 5 * 60_000;
@@ -39,6 +40,7 @@ export interface IssuedSession {
 export class AuthService {
   private readonly mfaKey: Buffer;
   private readonly otpKey: Buffer;
+  private readonly webUrl: string;
 
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
@@ -46,8 +48,9 @@ export class AuthService {
     @Inject(SessionService) private readonly sessions: SessionService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(RateLimitService) private readonly limits: RateLimitService,
-    @Inject(OTP_SENDER) private readonly otp: OtpSender,
+    @Inject(MAILER) private readonly mailer: Mailer,
   ) {
+    this.webUrl = config.PUBLIC_WEB_URL;
     this.mfaKey = deriveKey(config.AUTH_SECRET, 'mfa-secret');
     this.otpKey = deriveKey(config.AUTH_SECRET, 'otp-code');
   }
@@ -246,25 +249,26 @@ export class AuthService {
     });
   }
 
-  // ------------------------------------------------------------------ tenant (phone OTP)
+  // ------------------------------------------------------------------ tenant (email OTP)
 
   /**
-   * Always answers the same way whether or not the number is known (anti-enumeration).
-   * Staff phone numbers never receive tenant codes: staff must use password + MFA.
+   * Always answers the same way whether or not the email is known (anti-enumeration).
+   * Staff emails never receive tenant codes: staff must use password + MFA.
+   * `email` is already trimmed and lower-cased by the controller.
    */
-  async requestOtp(phone: string, meta: RequestMetaValue): Promise<void> {
-    if (!this.otp.configured) {
+  async requestOtp(email: string, meta: RequestMetaValue): Promise<void> {
+    if (!this.mailer.configured) {
       throw new ApiError(
         HttpStatus.SERVICE_UNAVAILABLE,
         'SERVICE_UNAVAILABLE',
-        'Phone sign-in is not available yet.',
+        'Email sign-in is not available yet.',
       );
     }
     await this.limits.hit(LIMITS.otpRequestPerIp, meta.ip ?? 'unknown');
-    await this.limits.hit(LIMITS.otpRequestPerPhone, phone);
+    await this.limits.hit(LIMITS.otpRequestPerEmail, email);
 
     const existing = await this.prisma.user.findUnique({
-      where: { phoneE164: phone },
+      where: { email },
       select: { kind: true, status: true },
     });
     if (existing && (existing.kind !== 'TENANT' || existing.status !== 'ACTIVE')) return;
@@ -272,18 +276,26 @@ export class AuthService {
     const code = generateOtpCode();
     await this.prisma.otpChallenge.create({
       data: {
-        phoneE164: phone,
+        email,
         purpose: 'SIGN_IN',
-        codeVerifier: keyedVerifier(this.otpKey, `${phone}:${code}`),
+        codeVerifier: keyedVerifier(this.otpKey, `${email}:${code}`),
         maxAttempts: OTP_MAX_ATTEMPTS,
         expiresAt: new Date(Date.now() + OTP_TTL_MS),
       },
     });
-    await this.otp.send(phone, code);
+    await this.mailer.send(
+      email,
+      signInCodeEmail({
+        brand: await this.brand(),
+        to: email,
+        code,
+        minutes: OTP_TTL_MS / 60_000,
+      }),
+    );
   }
 
   async verifyOtp(
-    phone: string,
+    email: string,
     code: string,
     displayName: string | undefined,
     meta: RequestMetaValue,
@@ -302,13 +314,13 @@ export class AuthService {
         { id: string; codeVerifier: string; attempts: number; maxAttempts: number }[]
       >`
         SELECT "id", "codeVerifier", "attempts", "maxAttempts" FROM "otp_challenges"
-        WHERE "phoneE164" = ${phone} AND "purpose" = 'SIGN_IN' AND "consumedAt" IS NULL AND "expiresAt" > now()
+        WHERE "email" = ${email} AND "purpose" = 'SIGN_IN' AND "consumedAt" IS NULL AND "expiresAt" > now()
         ORDER BY "createdAt" DESC LIMIT 1 FOR UPDATE`;
       const ch = rows[0];
       if (!ch || ch.attempts >= ch.maxAttempts) return null;
 
       const matches =
-        /^\d{6}$/.test(code) && keyedVerifier(this.otpKey, `${phone}:${code}`) === ch.codeVerifier;
+        /^\d{6}$/.test(code) && keyedVerifier(this.otpKey, `${email}:${code}`) === ch.codeVerifier;
       if (!matches) {
         // Count the failed attempt and COMMIT it (we return instead of throwing so it isn't rolled back).
         await tx.otpChallenge.update({
@@ -322,11 +334,11 @@ export class AuthService {
         data: { consumedAt: new Date(), attempts: { increment: 1 } },
       });
 
-      let user = await tx.user.findUnique({ where: { phoneE164: phone } });
+      let user = await tx.user.findUnique({ where: { email } });
       if (user && (user.kind !== 'TENANT' || user.status !== 'ACTIVE')) return null;
       const created = !user;
       user ??= await tx.user.create({
-        data: { kind: 'TENANT', phoneE164: phone, displayName: displayName?.trim() || 'Guest' },
+        data: { kind: 'TENANT', email, displayName: displayName?.trim() || 'Guest' },
       });
       await tx.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
       const s = await this.sessions.create(tx, user, meta, true);
@@ -343,6 +355,21 @@ export class AuthService {
     });
     if (!result) throw fail();
     return result;
+  }
+
+  /** Lodge name and contacts for emails. Uses the property when there is exactly one. */
+  private async brand() {
+    const props = await this.prisma.property.findMany({
+      take: 2,
+      select: { name: true, supportEmail: true, supportPhone: true },
+    });
+    const p = props.length === 1 ? props[0] : undefined;
+    return {
+      lodgeName: p?.name ?? 'Netflex',
+      webUrl: this.webUrl,
+      supportEmail: p?.supportEmail,
+      supportPhone: p?.supportPhone,
+    };
   }
 
   // ------------------------------------------------------------------ shared

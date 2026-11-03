@@ -7,6 +7,7 @@ import {
   XFF,
   createStaff,
   nextTotp,
+  randomEmail,
   randomPhone,
   signInStaff,
   startHarness,
@@ -15,10 +16,10 @@ import {
   type Harness,
 } from '../../../scripts/test/api-harness.js';
 import { AuditService } from './audit/audit.service.js';
-import { OTP_SENDER, type FakeOtpSender } from './auth/otp-sender.js';
+import { MAILER, type FakeMailer } from './email/mailer.js';
 
 let h: Harness;
-let otp: FakeOtpSender;
+let otp: FakeMailer;
 const secrets = new Map<string, string>();
 
 // World: two properties, each with a building/floor/rooms; staff per role.
@@ -78,7 +79,7 @@ async function buildProperty(owner: Agent, tag: string) {
 
 beforeAll(async () => {
   h = await startHarness();
-  otp = h.app.get(OTP_SENDER);
+  otp = h.app.get(MAILER);
   firstAuditId =
     BigInt(
       (await h.prisma.auditLog.findFirst({ orderBy: { id: 'desc' }, select: { id: true } }))?.id ??
@@ -333,28 +334,28 @@ describe('cross-site request protection', () => {
 });
 
 // ====================================================================== tenant OTP
-describe('tenant phone sign-in', () => {
+describe('tenant email sign-in', () => {
   it('signs in with a valid code, creating a tenant account', async () => {
-    const phone = randomPhone();
+    const email = randomEmail();
     const req = await request(h.server)
       .post('/api/v1/auth/tenant/otp/request')
       .set(CSRF)
       .set(XFF())
-      .send({ phone });
+      .send({ email });
     expect(req.status).toBe(202);
-    const code = otp.lastCode(phone) as string;
+    const code = otp.lastCode(email) as string;
     expect(code).toMatch(/^\d{6}$/);
     const agent = request.agent(h.server);
     const v = await agent
       .post('/api/v1/auth/tenant/otp/verify')
       .set(CSRF)
       .set(XFF())
-      .send({ phone, code, displayName: 'Ada' });
+      .send({ email, code, displayName: 'Ada' });
     expect(v.status).toBe(200);
     const me = await agent.get('/api/v1/me').expect(200);
     expect(me.body.data.user).toMatchObject({
       kind: 'TENANT',
-      phoneE164: phone,
+      email,
       displayName: 'Ada',
     });
     // Codes are single-use.
@@ -362,94 +363,111 @@ describe('tenant phone sign-in', () => {
       .post('/api/v1/auth/tenant/otp/verify')
       .set(CSRF)
       .set(XFF())
-      .send({ phone, code })
+      .send({ email, code })
       .expect(401);
     // Codes are stored only as keyed verifiers.
-    const stored = await h.prisma.otpChallenge.findFirst({ where: { phoneE164: phone } });
+    const stored = await h.prisma.otpChallenge.findFirst({ where: { email } });
     expect(stored?.codeVerifier).not.toContain(code);
   });
 
-  it('accepts local Nigerian number formats', async () => {
-    const local = `081${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`;
+  it('treats email case and spaces as the same address', async () => {
+    const email = randomEmail();
     await request(h.server)
       .post('/api/v1/auth/tenant/otp/request')
       .set(CSRF)
       .set(XFF())
-      .send({ phone: local })
+      .send({ email: `  ${email.toUpperCase()} ` })
       .expect(202);
-    expect(otp.lastCode(`+234${local.slice(1)}`)).toBeDefined();
+    expect(otp.lastCode(email)).toMatch(/^\d{6}$/);
+  });
+
+  it('sends a branded email with the code in both HTML and plain text', async () => {
+    const email = randomEmail();
+    await request(h.server)
+      .post('/api/v1/auth/tenant/otp/request')
+      .set(CSRF)
+      .set(XFF())
+      .send({ email })
+      .expect(202);
+    const m = otp.last(email);
+    const code = otp.lastCode(email) as string;
+    expect(m?.email.subject).toContain(code);
+    expect(m?.email.html).toContain(code);
+    expect(m?.email.html).toContain('Didn’t ask for this?');
+    expect(m?.email.text).toContain(code);
+    expect(m?.email.tag).toBe('sign-in-code');
   });
 
   it('locks a code after 5 wrong attempts, even if the right code follows', async () => {
-    const phone = randomPhone();
+    const email = randomEmail();
     await request(h.server)
       .post('/api/v1/auth/tenant/otp/request')
       .set(CSRF)
       .set(XFF())
-      .send({ phone })
+      .send({ email })
       .expect(202);
-    const code = otp.lastCode(phone) as string;
+    const code = otp.lastCode(email) as string;
     const wrong = code === '000000' ? '111111' : '000000';
     for (let i = 0; i < 5; i++)
       await request(h.server)
         .post('/api/v1/auth/tenant/otp/verify')
         .set(CSRF)
         .set(XFF())
-        .send({ phone, code: wrong })
+        .send({ email, code: wrong })
         .expect(401);
     await request(h.server)
       .post('/api/v1/auth/tenant/otp/verify')
       .set(CSRF)
       .set(XFF())
-      .send({ phone, code })
+      .send({ email, code })
       .expect(401);
   });
 
-  it('never sends tenant codes to a staff phone number (but answers identically)', async () => {
-    const phone = randomPhone();
+  it('never sends tenant codes to a staff email (but answers identically)', async () => {
+    const email = randomEmail();
     const s = await createStaff(h.prisma, [{ role: 'SUPPORT', propertyId: P.A.id }]);
-    await h.prisma.user.update({ where: { id: s.id }, data: { phoneE164: phone } });
+    await h.prisma.user.update({ where: { id: s.id }, data: { email } });
     const r = await request(h.server)
       .post('/api/v1/auth/tenant/otp/request')
       .set(CSRF)
       .set(XFF())
-      .send({ phone });
+      .send({ email });
     expect(r.status).toBe(202);
-    expect(r.body.data.message).toBe('If this number can sign in, a code is on its way.');
-    expect(otp.count(phone)).toBe(0);
+    expect(r.body.data.message).toBe('If this email can sign in, a code is on its way.');
+    expect(otp.count(email)).toBe(0);
   });
 
-  it('limits code requests per phone number', async () => {
-    const phone = randomPhone();
+  it('limits code requests per email', async () => {
+    const email = randomEmail();
     for (let i = 0; i < 3; i++)
       await request(h.server)
         .post('/api/v1/auth/tenant/otp/request')
         .set(CSRF)
         .set(XFF())
         .set('x-forwarded-for', `10.1.0.${i}`)
-        .send({ phone })
+        .send({ email })
         .expect(202);
     await request(h.server)
       .post('/api/v1/auth/tenant/otp/request')
       .set(CSRF)
       .set(XFF())
-      .send({ phone })
+      .send({ email })
       .expect(429);
   });
 
   it('tenants cannot reach any admin endpoint', async () => {
-    const phone = randomPhone();
+    const email = randomEmail();
     await request(h.server)
       .post('/api/v1/auth/tenant/otp/request')
       .set(CSRF)
       .set(XFF())
-      .send({ phone });
+      .send({ email });
     const t = request.agent(h.server);
     await t
       .post('/api/v1/auth/tenant/otp/verify')
       .set(CSRF)
       .set(XFF())
-      .send({ phone, code: otp.lastCode(phone) })
+      .send({ email, code: otp.lastCode(email) })
       .expect(200);
     await t.get('/api/v1/admin/properties').expect(403);
     await t.get(`/api/v1/admin/properties/${P.A.id}`).expect(403);
@@ -457,14 +475,14 @@ describe('tenant phone sign-in', () => {
     await t.post('/api/v1/auth/staff/mfa/enroll').set(CSRF).send({}).expect(403);
   });
 
-  it('is unavailable (503) when no SMS provider is configured', async () => {
-    const plain = await startHarness({ OTP_PROVIDER: 'none' });
+  it('is unavailable (503) when no email provider is configured', async () => {
+    const plain = await startHarness({ EMAIL_PROVIDER: 'none' });
     try {
       const r = await request(plain.server)
         .post('/api/v1/auth/tenant/otp/request')
         .set(CSRF)
         .set(XFF())
-        .send({ phone: randomPhone() });
+        .send({ email: randomEmail() });
       expect(r.status).toBe(503);
     } finally {
       await plain.close();
@@ -588,7 +606,7 @@ describe('cross-property isolation', () => {
       .post(`/api/v1/admin/properties/${P.A.id}/tenants`)
       .set(CSRF)
       .send({
-        phone: randomPhone(),
+        email: randomEmail(),
         displayName: 'X',
         roomId: P.B.room11,
         startsAt: new Date().toISOString(),
@@ -600,7 +618,7 @@ describe('cross-property isolation', () => {
       .post(`/api/v1/admin/properties/${P.B.id}/tenants`)
       .set(CSRF)
       .send({
-        phone: randomPhone(),
+        email: randomEmail(),
         displayName: 'Only B',
         roomId: P.B.room11,
         startsAt: '2026-01-01T00:00:00Z',
@@ -629,11 +647,11 @@ describe('cross-property isolation', () => {
   });
 
   it('the same person can be a tenant in two properties without either admin seeing the other history', async () => {
-    const phone = randomPhone();
+    const email = randomEmail();
     const inA = await agents.PROPERTY_ADMIN.post(`/api/v1/admin/properties/${P.A.id}/tenants`)
       .set(CSRF)
       .send({
-        phone,
+        email,
         displayName: 'Two Homes',
         roomId: P.A.room12,
         startsAt: '2026-02-01T00:00:00Z',
@@ -642,7 +660,7 @@ describe('cross-property isolation', () => {
       .post(`/api/v1/admin/properties/${P.B.id}/tenants`)
       .set(CSRF)
       .send({
-        phone,
+        email,
         displayName: 'Two Homes',
         roomId: P.B.room12,
         startsAt: '2026-02-01T00:00:00Z',
@@ -738,6 +756,7 @@ describe('tenancy lifecycle', () => {
     const a = agents.PROPERTY_ADMIN;
     const base = `/api/v1/admin/properties/${P.A.id}`;
     const on = await a.post(`${base}/tenants`).set(CSRF).send({
+      email: randomEmail(),
       phone: randomPhone(),
       displayName: 'Mover',
       roomId: P.A.room11,
@@ -836,9 +855,9 @@ describe('tenancy lifecycle', () => {
     expect(r.body.error.code).toBe('VALIDATION_FAILED');
     const bad = await agents.PROPERTY_ADMIN.post(`/api/v1/admin/properties/${P.A.id}/tenants`)
       .set(CSRF)
-      .send({ phone: 'not-a-phone', displayName: '', roomId: 'x', startsAt: 'never' });
+      .send({ email: 'not-an-email', displayName: '', roomId: 'x', startsAt: 'never' });
     expect(bad.status).toBe(400);
-    expect(JSON.stringify(bad.body)).not.toContain('not-a-phone');
+    expect(JSON.stringify(bad.body)).not.toContain('not-an-email');
   });
 });
 

@@ -4,7 +4,7 @@ import type { DefaultAdapterRegistry } from '@netflex/core';
 import type { PrismaClient } from '@netflex/database';
 import { normalizeMac } from '@netflex/domain';
 import { z } from 'zod';
-import { accessState } from '../access/lifecycle.service.js';
+import { accessState, termSeconds } from '../access/lifecycle.service.js';
 import type { AppRequest } from '../auth/auth.types.js';
 import { OptionalAuth, Public } from '../auth/decorators.js';
 import { ZodPipe, uuid } from '../common/zod.js';
@@ -151,7 +151,7 @@ export class PortalController {
     const remaining = e.expiresAt
       ? Math.max(0, Math.floor((e.expiresAt.getTime() - Date.now()) / 1000))
       : null;
-    const s = accessState(e.status, e.observedNetworkState, remaining);
+    const s = accessState(e.status, e.observedNetworkState, remaining, termSeconds(e));
     const state =
       s === 'ACTIVE' ? 'CONNECTED' : s === 'EXPIRING_SOON' ? 'CONNECTED_EXPIRING_SOON' : s;
     const plan = e.subscription.planSnapshot as { name?: string };

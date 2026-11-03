@@ -18,7 +18,10 @@ Validated at startup by `packages/config` (zod). Missing or invalid values stop 
 | `PAYSTACK_SECRET_KEY`    | if paystack | `sk_test_…` / `sk_live_…`                      | Live key required in production; test key required elsewhere                                      |
 | `PAYSTACK_BASE_URL`      | no          | `https://api.paystack.co`                      |                                                                                                   |
 | `NETWORK_ADAPTER`        | no          | `none` (default), `fake`, `mikrotik`           | `mikrotik` is not live-verified (ADR-0004)                                                        |
-| `OTP_PROVIDER`           | no          | `none` (default), `fake`                       | No real provider chosen yet                                                                       |
+| `EMAIL_PROVIDER`         | no          | `none` (default), `resend`, `fake`             | Sends sign-in codes by email. `fake` only in development/test                                     |
+| `RESEND_API_KEY`         | if resend   | `re_…`                                         | Secret. Create at resend.com → API Keys (sending access only)                                     |
+| `EMAIL_FROM`             | if resend   | `ND Lodge Wi-Fi <wifi@yourdomain.com>`         | Must use a domain verified in Resend                                                              |
+| `EMAIL_REPLY_TO`         | no          | `networkflex24@gmail.com`                      | Where replies to account emails go                                                                |
 | `PAID_ACCESS_ENABLED`    | no          | `false` (default)                              | Keep `false` until legal gates pass                                                               |
 
 Generate a secret: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`.

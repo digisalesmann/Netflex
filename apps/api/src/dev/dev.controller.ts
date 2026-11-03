@@ -19,9 +19,10 @@ import { FakePaymentProvider, type PaymentProvider } from '@netflex/payments';
 import type { Response } from 'express';
 import { z } from 'zod';
 import { Public, SkipCsrf } from '../auth/decorators.js';
-import { OTP_SENDER, FakeOtpSender, type OtpSender } from '../auth/otp-sender.js';
+import { FakeMailer, MAILER, type Mailer } from '../email/mailer.js';
+import { signInCodeEmail } from '../email/templates.js';
 import { ApiError } from '../common/api-error.js';
-import { ZodPipe, phoneE164 } from '../common/zod.js';
+import { ZodPipe, email } from '../common/zod.js';
 import {
   ADAPTER_REGISTRY,
   CONFIG,
@@ -50,7 +51,7 @@ export class DevSimulatorController {
     @Inject(ADAPTER_REGISTRY) private readonly registry: DefaultAdapterRegistry,
     @Inject(PAYMENT_PROVIDER) private readonly payments: PaymentProvider,
     @Inject(PAYMENT_ENGINE) private readonly engine: PaymentEngine,
-    @Inject(OTP_SENDER) private readonly otp: OtpSender,
+    @Inject(MAILER) private readonly mailer: Mailer,
   ) {
     assertSimulatorAllowed(config.NETFLEX_ENV, 'DevSimulatorController');
   }
@@ -117,11 +118,47 @@ export class DevSimulatorController {
     res.redirect(303, url.toString());
   }
 
-  /** Read the last simulated SMS code for a phone (the simulated SMS inbox). */
+  /** Read the last simulated sign-in code for an email (the simulated inbox). */
   @Post('otp-outbox')
   @HttpCode(200)
-  outbox(@Body(new ZodPipe(z.strictObject({ phone: phoneE164 }))) body: { phone: string }) {
-    if (!(this.otp instanceof FakeOtpSender)) throw notAvailable();
-    return { code: this.otp.lastCode(body.phone) ?? null, simulated: true };
+  outbox(@Body(new ZodPipe(z.strictObject({ email }))) body: { email: string }) {
+    if (!(this.mailer instanceof FakeMailer)) throw notAvailable();
+    return { code: this.mailer.lastCode(body.email) ?? null, simulated: true };
+  }
+
+  /** The newest simulated email, rendered as the recipient would see it. */
+  @Get('mailbox/latest')
+  mailbox(@Query('to') to: string | undefined, @Res() res: Response) {
+    if (!(this.mailer instanceof FakeMailer)) throw notAvailable();
+    const m = this.mailer.last(to);
+    res.setHeader('Cache-Control', 'no-store');
+    if (!m) {
+      res.type('text/plain').send('No emails yet. Request a sign-in code first.');
+      return;
+    }
+    res.type('html').send(m.email.html);
+  }
+
+  /** Preview an email template with sample data (no email is sent). */
+  @Get('email-preview/:template')
+  async preview(@Param('template') template: string, @Res() res: Response) {
+    if (template !== 'sign-in-code') throw notAvailable();
+    const p = await this.prisma.property.findFirst({
+      orderBy: { createdAt: 'asc' },
+      select: { name: true, supportEmail: true, supportPhone: true },
+    });
+    const sample = signInCodeEmail({
+      brand: {
+        lodgeName: p?.name ?? 'ND Lodge',
+        webUrl: this.config.PUBLIC_WEB_URL,
+        supportEmail: p?.supportEmail,
+        supportPhone: p?.supportPhone,
+      },
+      to: 'resident@example.com',
+      code: '482913',
+      minutes: 5,
+    });
+    res.setHeader('Cache-Control', 'no-store');
+    res.type('html').send(sample.html);
   }
 }

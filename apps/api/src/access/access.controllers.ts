@@ -22,16 +22,16 @@ import {
   type RequestMetaValue,
 } from '../auth/decorators.js';
 import { notFound } from '../common/prisma-errors.js';
-import { ZodPipe, phoneE164, reason, uuid } from '../common/zod.js';
+import { ZodPipe, email, reason, uuid } from '../common/zod.js';
 import { PRISMA } from '../infra/tokens.js';
-import { LifecycleService, accessState, actorOf } from './lifecycle.service.js';
+import { LifecycleService, accessState, actorOf, termSeconds } from './lifecycle.service.js';
 
 const Reason = z.strictObject({ reason });
 const Extend = z.strictObject({
   by: z.strictObject({ value: z.number().int().positive(), unit: z.enum(DURATION_UNITS) }),
   reason,
 });
-const AddMember = z.strictObject({ phone: phoneE164 });
+const AddMember = z.strictObject({ email });
 const Transfer = z.strictObject({ toUserId: uuid, reason });
 const ListQuery = z.strictObject({
   status: z.enum(ENTITLEMENT_STATUSES).optional(),
@@ -96,7 +96,7 @@ export class AdminAccessController {
           include: {
             memberships: {
               where: { removedAt: null },
-              include: { user: { select: { displayName: true, phoneE164: true } } },
+              include: { user: { select: { displayName: true, email: true, phoneE164: true } } },
             },
             order: { select: { id: true, reference: true, status: true } },
           },
@@ -128,7 +128,10 @@ export class AdminAccessController {
     const remaining = e.expiresAt
       ? Math.max(0, Math.floor((e.expiresAt.getTime() - Date.now()) / 1000))
       : null;
-    return { ...e, customerState: accessState(e.status, e.observedNetworkState, remaining) };
+    return {
+      ...e,
+      customerState: accessState(e.status, e.observedNetworkState, remaining, termSeconds(e)),
+    };
   }
 
   @RequirePermission('subscription.manage')
@@ -214,7 +217,7 @@ export class AdminAccessController {
     @Param('entitlementId', new ParseUUIDPipe()) id: string,
     @Body(new ZodPipe(AddMember)) b: z.infer<typeof AddMember>,
   ) {
-    return this.svc.run((tx) => this.svc.addMember(tx, id, b.phone, actorOf(a, m), p));
+    return this.svc.run((tx) => this.svc.addMember(tx, id, b.email, actorOf(a, m), p));
   }
 
   @RequirePermission('subscription.manage')
@@ -286,7 +289,7 @@ export class MyAccessController {
     return this.svc.run(async (tx) => {
       const v = await this.svc.accessFor(tx, auth.user.id, id);
       if (v.role !== 'MANAGER') throw notFound();
-      return this.svc.addMember(tx, id, b.phone, actorOf(auth, meta));
+      return this.svc.addMember(tx, id, b.email, actorOf(auth, meta));
     });
   }
 

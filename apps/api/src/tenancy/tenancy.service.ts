@@ -42,7 +42,7 @@ export class TenancyService {
   private async tenantInProperty(tx: Tx | PrismaClient, propertyId: string, userId: string) {
     const u = await tx.user.findFirst({
       where: { id: userId, kind: 'TENANT', assignments: { some: { propertyId } } },
-      select: { id: true, displayName: true, phoneE164: true, status: true },
+      select: { id: true, displayName: true, email: true, phoneE164: true, status: true },
     });
     if (!u) throw notFound();
     return u;
@@ -79,6 +79,7 @@ export class TenancyService {
             OR: [
               { displayName: { contains: q.search, mode: 'insensitive' } },
               { phoneE164: { contains: q.search.replace(/\s/g, '') } },
+              { email: { contains: q.search.toLowerCase() } },
             ],
           }
         : {}),
@@ -91,6 +92,7 @@ export class TenancyService {
       select: {
         id: true,
         displayName: true,
+        email: true,
         phoneE164: true,
         status: true,
         assignments: {
@@ -132,19 +134,48 @@ export class TenancyService {
     return { ...u, assignments, authorities };
   }
 
-  /** Onboard a tenant by phone into a room. Reuses an existing tenant account with that phone. */
+  /**
+   * Onboard a tenant into a room. They sign in with this email. Reuses the tenant
+   * account with that email, or an older phone-only account with that phone.
+   */
   async onboard(
     c: Ctx,
-    input: { phone: string; displayName: string; roomId: string; startsAt: Date; reason?: string },
+    input: {
+      email: string;
+      phone?: string;
+      displayName: string;
+      roomId: string;
+      startsAt: Date;
+      reason?: string;
+    },
   ) {
     return this.prisma.$transaction(async (tx) => {
       const room = await this.room(tx, c.propertyId, input.roomId);
-      let user = await tx.user.findUnique({ where: { phoneE164: input.phone } });
+      let user = await tx.user.findUnique({ where: { email: input.email } });
+      if (!user && input.phone) {
+        const byPhone = await tx.user.findUnique({ where: { phoneE164: input.phone } });
+        if (byPhone?.email)
+          throw badRequest('This phone number belongs to an account with a different email.');
+        if (byPhone)
+          user = await tx.user.update({ where: { id: byPhone.id }, data: { email: input.email } });
+      }
       if (user && user.kind !== 'TENANT')
-        throw badRequest('This phone number belongs to a staff account.');
+        throw badRequest('This email belongs to a staff account.');
+      if (user && input.phone && user.phoneE164 && user.phoneE164 !== input.phone)
+        throw badRequest('This email belongs to an account with a different phone number.');
+      if (user && input.phone && !user.phoneE164) {
+        const taken = await tx.user.findUnique({ where: { phoneE164: input.phone } });
+        if (taken) throw badRequest('This phone number belongs to another account.');
+        user = await tx.user.update({ where: { id: user.id }, data: { phoneE164: input.phone } });
+      }
       const created = !user;
       user ??= await tx.user.create({
-        data: { kind: 'TENANT', phoneE164: input.phone, displayName: input.displayName },
+        data: {
+          kind: 'TENANT',
+          email: input.email,
+          phoneE164: input.phone ?? null,
+          displayName: input.displayName,
+        },
       });
       const open = await tx.tenantAssignment.findFirst({
         where: { userId: user.id, propertyId: c.propertyId, endsAt: null },

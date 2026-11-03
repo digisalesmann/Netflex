@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { PortalFlow, type PortalCtx } from '@/components/portal/PortalFlow';
-import { site } from '@/lib/site';
 
 export const metadata: Metadata = { title: 'Connect', robots: { index: false, follow: false } };
 
@@ -15,8 +14,8 @@ export default async function Connect({ searchParams }: { searchParams: Params }
   const mac = one(q.mac);
   const ctx: PortalCtx | null = gw && ip && mac ? { gw, ip, mac } : null;
   return (
-    <main id="main" className="container narrow">
-      <PortalFlow ctx={ctx} brand={site.brand} />
+    <main id="main" className="cn-page">
+      <PortalFlow ctx={ctx} />
     </main>
   );
 }

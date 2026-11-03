@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const NETFLEX_ENVIRONMENTS = ['development', 'test', 'staging', 'production'] as const;
 export type NetflexEnvironment = (typeof NETFLEX_ENVIRONMENTS)[number];
 
-/** Environments where test doubles (fake payment/network/OTP providers) may be loaded. */
+/** Environments where test doubles (fake payment/network/email providers) may be loaded. */
 export const SIMULATOR_ENVIRONMENTS: readonly NetflexEnvironment[] = ['development', 'test'];
 
 const booleanString = z
@@ -42,7 +42,13 @@ const baseSchema = z.object({
   PAYSTACK_BASE_URL: z.string().url().default('https://api.paystack.co'),
 
   NETWORK_ADAPTER: z.enum(['none', 'fake', 'mikrotik']).default('none'),
-  OTP_PROVIDER: z.enum(['none', 'fake']).default('none'),
+  /** Sends sign-in codes and account emails. 'fake' keeps them in memory (dev/test only). */
+  EMAIL_PROVIDER: z.enum(['none', 'fake', 'resend']).default('none'),
+  RESEND_API_KEY: z.string().optional(),
+  /** Sender shown to residents, e.g. "ND Lodge Wi-Fi <wifi@yourdomain.com>". Must be a verified Resend domain. */
+  EMAIL_FROM: z.string().max(200).optional(),
+  /** Where replies go, e.g. the lodge inbox. */
+  EMAIL_REPLY_TO: z.string().email().optional(),
 
   /**
    * Master switch for selling paid access. Must stay false until the legal and
@@ -62,7 +68,7 @@ const envSchema = baseSchema.superRefine((cfg, ctx) => {
     if (cfg.PAYMENT_PROVIDER === 'fake')
       fail('PAYMENT_PROVIDER', 'fake provider is not allowed here');
     if (cfg.NETWORK_ADAPTER === 'fake') fail('NETWORK_ADAPTER', 'fake adapter is not allowed here');
-    if (cfg.OTP_PROVIDER === 'fake') fail('OTP_PROVIDER', 'fake provider is not allowed here');
+    if (cfg.EMAIL_PROVIDER === 'fake') fail('EMAIL_PROVIDER', 'fake provider is not allowed here');
   }
 
   if (cfg.NETWORK_ADAPTER === 'mikrotik') {
@@ -80,6 +86,16 @@ const envSchema = baseSchema.superRefine((cfg, ctx) => {
       fail('PAYSTACK_SECRET_KEY', 'production requires a live secret key');
     else if (cfg.NETFLEX_ENV !== 'production' && !key.startsWith('sk_test_'))
       fail('PAYSTACK_SECRET_KEY', 'non-production environments must use a test secret key');
+  }
+
+  if (cfg.EMAIL_PROVIDER === 'resend') {
+    if (!cfg.RESEND_API_KEY?.startsWith('re_'))
+      fail('RESEND_API_KEY', 'required when EMAIL_PROVIDER=resend (starts with re_)');
+    if (!cfg.EMAIL_FROM || !/<?[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+>?$/.test(cfg.EMAIL_FROM))
+      fail(
+        'EMAIL_FROM',
+        'required when EMAIL_PROVIDER=resend, e.g. "ND Lodge Wi-Fi <wifi@example.com>"',
+      );
   }
 
   if (cfg.NETFLEX_ENV === 'production') {

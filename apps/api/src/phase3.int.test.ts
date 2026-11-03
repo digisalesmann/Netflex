@@ -5,6 +5,7 @@ import {
   CSRF,
   XFF,
   createStaff,
+  randomEmail,
   randomPhone,
   signInStaff,
   startHarness,
@@ -12,11 +13,11 @@ import {
   type Agent,
   type Harness,
 } from '../../../scripts/test/api-harness.js';
-import { OTP_SENDER, type FakeOtpSender } from './auth/otp-sender.js';
+import { MAILER, type FakeMailer } from './email/mailer.js';
 import { RedemptionService } from './vouchers/redemption.service.js';
 
 let h: Harness;
-let otp: FakeOtpSender;
+let otp: FakeMailer;
 let redemption: RedemptionService;
 const secrets = new Map<string, string>();
 const ag = {} as Record<'owner' | 'admin' | 'support' | 'adminB', Agent>;
@@ -87,22 +88,22 @@ async function issue(versionId: string, extra: Record<string, unknown> = {}) {
   return r.body.data.vouchers as { voucherId: string; code: string }[];
 }
 
-async function tenantAgent(phone = randomPhone()) {
+async function tenantAgent(email = randomEmail()) {
   await request(h.server)
     .post('/api/v1/auth/tenant/otp/request')
     .set(CSRF)
     .set(XFF())
-    .send({ phone })
+    .send({ email })
     .expect(202);
   const t = request.agent(h.server);
   await t
     .post('/api/v1/auth/tenant/otp/verify')
     .set(CSRF)
     .set(XFF())
-    .send({ phone, code: otp.lastCode(phone) })
+    .send({ email, code: otp.lastCode(email) })
     .expect(200);
   const userId = (await t.get('/api/v1/me')).body.data.user.id as string;
-  return { agent: t, userId, phone };
+  return { agent: t, userId, email };
 }
 
 const redeem = (
@@ -124,7 +125,7 @@ const redeem = (
 
 beforeAll(async () => {
   h = await startHarness({ PAID_ACCESS_ENABLED: 'true' });
-  otp = h.app.get(OTP_SENDER);
+  otp = h.app.get(MAILER);
   redemption = h.app.get(RedemptionService);
   const owner = await createStaff(h.prisma, [{ role: 'OWNER', propertyId: null }]);
   ag.owner = await signInStaff(h, owner, secrets);
@@ -484,7 +485,7 @@ describe('orders', () => {
       .post(`/api/v1/admin/properties/${A.id}/tenants`)
       .set(CSRF)
       .send({
-        phone: t.phone,
+        email: t.email,
         displayName: 'Room lead',
         roomId: A.room,
         startsAt: '2026-01-01T00:00:00Z',
