@@ -12,7 +12,7 @@ test('staff and activity: add, roles, reset, disable; every step shows in the ac
 
   await goTo(page, 'Staff');
   await expect(page.getByRole('heading', { name: 'Staff', level: 1 })).toBeVisible();
-  await expect(page.locator('.adm-staff', { hasText: 'You' })).toContainText('Owner');
+  await expect(page.locator('.adm-table__row', { hasText: 'You' })).toContainText('Owner');
   await expectAccessible(page);
   await expectNoHorizontalOverflow(page);
 
@@ -29,12 +29,18 @@ test('staff and activity: add, roles, reset, disable; every step shows in the ac
   await expect(page.locator('.adm-handover')).toContainText(password);
   await page.getByRole('button', { name: 'Done' }).click();
 
-  const row = page.locator('.adm-staff', { hasText: email });
-  await expect(row).toContainText('Front desk');
-  await expect(row).toContainText('Hasn’t signed in yet');
+  // The list shows them; open their page to manage access.
+  const listRow = page.locator('.adm-table__row', { hasText: email });
+  await expect(listRow).toContainText('Front desk');
+  await expect(listRow).toContainText('Not set up');
+  await expect(listRow).toContainText('Never');
+  await listRow.click();
+  await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible();
+  await expectAccessible(page);
+  await expectNoHorizontalOverflow(page);
 
   // Give, then remove, a second role.
-  await row.getByRole('button', { name: 'Give role' }).click();
+  await page.getByRole('button', { name: 'Give role' }).click();
   await page.getByRole('dialog').getByRole('combobox', { name: 'Role' }).click();
   await page
     .getByRole('dialog')
@@ -42,11 +48,12 @@ test('staff and activity: add, roles, reset, disable; every step shows in the ac
     .click();
   await page.getByRole('dialog').getByLabel('Reason').fill('Covers the evening shift');
   await page.getByRole('dialog').getByRole('button', { name: 'Give role' }).click();
-  await expect(row.locator('.adm-role', { hasText: 'Finance' })).toBeVisible();
-  await row.getByRole('button', { name: 'Remove Finance' }).click();
+  const access = page.locator('.adm-rolelist');
+  await expect(access).toContainText('Finance');
+  await page.getByRole('button', { name: 'Remove Finance' }).click();
   await page.getByRole('dialog').getByLabel('Reason').fill('Shift ended');
   await page.getByRole('dialog').getByRole('button', { name: 'Remove role' }).click();
-  await expect(row.locator('.adm-role', { hasText: 'Finance' })).toHaveCount(0);
+  await expect(access).not.toContainText('Finance');
 
   // The new person can sign in with the temporary password and is asked to set up two-step.
   const ctx = await browser.newContext(info.project.use);
@@ -59,17 +66,22 @@ test('staff and activity: add, roles, reset, disable; every step shows in the ac
   await ctx.close();
 
   // Reset their sign-in, then disable the account.
-  await row.getByRole('button', { name: 'Reset sign-in' }).click();
+  await page.getByRole('button', { name: 'Reset sign-in' }).click();
   await page.getByRole('dialog').getByLabel('Reason').fill('Lost phone');
   await page.getByRole('dialog').getByRole('button', { name: 'Reset sign-in' }).click();
   await expect(page.getByRole('heading', { name: 'Sign-in reset' })).toBeVisible();
   await page.getByRole('button', { name: 'Done' }).click();
-  await row.getByRole('button', { name: 'Disable' }).click();
+  await page.getByRole('button', { name: 'Disable' }).click();
   await page.getByRole('dialog').getByLabel('Reason').fill('Left the job');
   await page.getByRole('dialog').getByRole('button', { name: 'Disable account' }).click();
-  await expect(
-    page.getByRole('region', { name: 'Disabled' }).locator('.adm-staff', { hasText: email }),
-  ).toBeVisible();
+  await expect(page.locator('.adm-profile')).toContainText('Disabled');
+  await expect(page.getByRole('button', { name: 'Reset sign-in' })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Staff', exact: true }).first().click();
+  await page
+    .getByRole('navigation', { name: 'Filter by role' })
+    .getByRole('link', { name: /Disabled/ })
+    .click();
+  await expect(page.locator('.adm-table__row', { hasText: email })).toBeVisible();
 
   // Activity log tells the story in plain words.
   await goTo(page, 'Activity');

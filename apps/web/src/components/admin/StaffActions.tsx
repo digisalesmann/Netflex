@@ -234,7 +234,12 @@ export function RemoveRole({
   label: string;
 }) {
   return (
-    <Panel label={`Remove ${label}`} title={`Remove the ${label} role?`} tone="quiet">
+    <Panel
+      label="Remove"
+      ariaLabel={`Remove ${label}`}
+      title={`Remove the ${label} role?`}
+      tone="quiet"
+    >
       {(close) => (
         <ActionForm
           cta="Remove role"

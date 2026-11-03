@@ -15,10 +15,13 @@ export function Panel({
   title,
   lede,
   tone = 'solid',
+  ariaLabel,
   children,
 }: {
   /** Text of the button that opens the panel. */
   label: string;
+  /** Fuller name for screen readers when the visible label is short (e.g. "Remove"). */
+  ariaLabel?: string;
   title: string;
   lede?: string;
   tone?: 'solid' | 'quiet' | 'danger';
@@ -35,7 +38,12 @@ export function Panel({
   const close = () => setOpen(false);
   return (
     <>
-      <button type="button" className={`adm-btn adm-btn--${tone}`} onClick={() => setOpen(true)}>
+      <button
+        type="button"
+        className={`adm-btn adm-btn--${tone}`}
+        aria-label={ariaLabel}
+        onClick={() => setOpen(true)}
+      >
         {label}
       </button>
       <dialog
