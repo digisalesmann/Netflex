@@ -6,3 +6,6 @@ coverage
 docs/spec
 package-lock.json
 **/migrations/**/*.sql
+
+# Print source for the setup guide PDF (whitespace matters in its example boxes).
+docs/network/source/

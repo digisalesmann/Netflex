@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ND Lodge Wi-Fi: Setup Guide</title>
+<style>
+  @page { size: A4; margin: 15mm 17mm 17mm; }
+  :root {
+    --ink: #1a1a1a; --muted: #5b5b5b; --line: #e3e0da; --soft: #f6f4f0;
+    --brand: #0d6b58; --warn: #9a5b00; --warn-bg: #fff6e6; --bad: #a3271f; --bad-bg: #fdeeec;
+    --ok: #1d6b35; --ok-bg: #edf7ef;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font: 9.6pt/1.5 -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; color: var(--ink); }
+  h1, h2, h3 { line-height: 1.2; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: 17pt; margin-bottom: 3mm; }
+  h3 { font-size: 11pt; margin: 4.5mm 0 1.5mm; }
+  p { margin: 0 0 2.5mm; }
+  code, .k { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9.5pt; }
+  .k { background: var(--soft); border: 1px solid var(--line); border-radius: 4px; padding: 0.3mm 1.5mm; white-space: nowrap; }
+  b { font-weight: 650; }
+  .part { break-before: page; }
+  .eyebrow { color: var(--brand); font-size: 8.5pt; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 2mm; }
+  .lede { color: var(--muted); font-size: 10.2pt; margin-bottom: 3.5mm; }
+  .meta { display: flex; gap: 6mm; color: var(--muted); font-size: 9pt; margin-bottom: 6mm; padding-bottom: 4mm; border-bottom: 1px solid var(--line); }
+  .meta b { color: var(--ink); }
+
+  /* steps */
+  ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 0; }
+  ol.steps > li { counter-increment: s; position: relative; padding: 0 0 2.4mm 10mm; break-inside: avoid; }
+  ol.steps > li::before {
+    content: counter(s); position: absolute; left: 0; top: -0.3mm; width: 7mm; height: 7mm; border-radius: 50%;
+    background: var(--ink); color: #fff; font-weight: 700; font-size: 9pt; display: grid; place-items: center;
+  }
+  ol.steps > li > ul { margin: 1mm 0 0; padding-left: 4.5mm; }
+  ol.steps > li > ul li { margin-bottom: 0.8mm; }
+
+  /* boxes */
+  .box { border-radius: 6px; padding: 2.5mm 3.5mm; margin: 2.5mm 0 3mm; break-inside: avoid; font-size: 10pt; }
+  .box p:last-child { margin: 0; }
+  .box .t { font-weight: 700; display: block; margin-bottom: 1mm; }
+  .tip { background: var(--soft); }
+  .warn { background: var(--warn-bg); }
+  .warn .t { color: var(--warn); }
+  .stop { background: var(--bad-bg); }
+  .stop .t { color: var(--bad); }
+  .check { background: var(--ok-bg); }
+  .check .t { color: var(--ok); }
+
+  .screen { border: 1px solid var(--line); border-radius: 6px; padding: 3mm 4mm; margin: 2mm 0 4mm; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9pt; background: #fbfaf8; white-space: pre-wrap; break-inside: avoid; }
+  .screen .you { color: var(--brand); font-weight: 700; }
+
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9.8pt; break-inside: avoid; }
+  th { text-align: left; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 650; padding: 1.5mm 2mm; border-bottom: 1.5px solid var(--ink); }
+  td { padding: 1.5mm 2mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td:first-child { font-weight: 600; }
+
+  .tick { list-style: none; padding: 0; margin: 0 0 4mm; }
+  .tick li { padding: 1mm 0 1mm 8mm; position: relative; border-bottom: 1px dashed var(--line); }
+  .tick li::before { content: ""; position: absolute; left: 0; top: 1.6mm; width: 4mm; height: 4mm; border: 1.3px solid var(--ink); border-radius: 1mm; }
+
+  .where { font-size: 9pt; color: var(--muted); margin: -1mm 0 3mm; }
+  .where b { color: var(--ink); }
+  .done { display: flex; align-items: center; gap: 3mm; margin-top: 3mm; padding-top: 2mm; border-top: 1px solid var(--line); font-size: 9.5pt; color: var(--muted); break-inside: avoid; }
+  .done::before { content: ""; width: 4.5mm; height: 4.5mm; border: 1.3px solid var(--ink); border-radius: 1mm; flex: none; }
+  .write { display: inline-block; min-width: 55mm; border-bottom: 1px solid var(--ink); }
+
+  /* cover */
+  .cover { height: 262mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover h1 { font-size: 34pt; letter-spacing: -0.02em; margin: 4mm 0 5mm; }
+  .cover .lede { font-size: 13pt; max-width: 140mm; }
+  .diagram { margin: 6mm 0; padding: 5mm; border: 1px solid var(--line); border-radius: 8px; }
+  .diagram svg { width: 100%; height: auto; display: block; }
+  .toc { columns: 2; column-gap: 10mm; font-size: 10pt; padding: 0; list-style: none; margin: 0; }
+  .toc li { break-inside: avoid; padding: 1.2mm 0; border-bottom: 1px solid var(--line); display: flex; gap: 3mm; }
+  .toc li span:first-child { color: var(--brand); font-weight: 700; width: 6mm; }
+  .small { font-size: 9pt; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<section class="cover">
+  <div>
+    <p class="eyebrow">ND Lodge · Netflex</p>
+    <h1>Setting up the lodge Wi-Fi</h1>
+    <p class="lede">A step-by-step guide, from an empty laptop to residents buying Wi-Fi on their phones. No technical knowledge needed: do each step in order and tick it off.</p>
+    <div class="diagram">
+      <svg viewBox="0 0 520 195" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif" font-size="12">
+        <g fill="none" stroke="#1a1a1a" stroke-width="1.4">
+          <rect x="10" y="60" width="110" height="46" rx="8"/>
+          <rect x="175" y="60" width="110" height="46" rx="8"/>
+          <rect x="350" y="8" width="120" height="38" rx="8"/>
+          <rect x="350" y="64" width="120" height="38" rx="8"/>
+          <rect x="350" y="120" width="120" height="38" rx="8"/>
+          <rect x="175" y="125" width="110" height="40" rx="8" stroke="#0d6b58"/>
+          <path d="M120 83h55M285 83h65M318 83V27h32M318 83v56h32M230 106v19"/>
+        </g>
+        <g fill="#1a1a1a" text-anchor="middle">
+          <text x="65" y="80" font-weight="700">Starlink</text><text x="65" y="96" fill="#5b5b5b">router</text>
+          <text x="230" y="80" font-weight="700">PoE switch</text><text x="230" y="96" fill="#5b5b5b">(the ONV box)</text>
+          <text x="410" y="31">Floor 1 access point</text>
+          <text x="410" y="87">Floor 2 access point</text>
+          <text x="410" y="143">Floor 3 access point</text>
+          <text x="230" y="143" font-weight="700" fill="#0d6b58">Office laptop</text><text x="230" y="158" fill="#5b5b5b">Omada + lodge link</text>
+        </g>
+        <g fill="#0d6b58" font-size="11" text-anchor="middle"><text x="230" y="186">↑ connects out to <tspan font-weight="700">netflexhq.com</tspan></text></g>
+      </svg>
+    </div>
+  </div>
+  <div>
+    <ol class="toc">
+      <li><span>0</span><span>Before you start</span></li>
+      <li><span>1</span><span>Get the laptop ready</span></li>
+      <li><span>2</span><span>Install Node.js</span></li>
+      <li><span>3</span><span>Reset the 3 access points</span></li>
+      <li><span>4</span><span>Install the Omada Controller</span></li>
+      <li><span>5</span><span>Add the access points</span></li>
+      <li><span>6</span><span>Create the two Wi-Fi networks</span></li>
+      <li><span>7</span><span>Two accounts for Netflex</span></li>
+      <li><span>8</span><span>Register the controller in the office</span></li>
+      <li><span>9</span><span>Turn on the sign-in page</span></li>
+      <li><span>10</span><span>Install the lodge link</span></li>
+      <li><span>11</span><span>Test with a real phone</span></li>
+      <li><span>12</span><span>Finish and keep it running</span></li>
+      <li><span>?</span><span>When something goes wrong</span></li>
+    </ol>
+    <p class="small" style="margin-top:6mm">Version 1 · 3 November 2026 · Menu names in Omada can differ slightly between versions. If a button isn't exactly where this guide says, look for the nearest match or use the search box in the controller.</p>
+  </div>
+</section>
+
+<!-- 0 -->
+<section class="part">
+  <p class="eyebrow">Part 0 · 15 minutes</p>
+  <h2>Before you start</h2>
+  <p class="lede">Gather everything first, so you don't have to stop halfway.</p>
+
+  <h3>Who you need</h3>
+  <table>
+    <tr><th style="width:30%">Person</th><th>Why</th></tr>
+    <tr><td>The person doing the setup</td><td>Follows this guide on the office laptop. Allow about <b>half a day</b>.</td></tr>
+    <tr><td>The owner (Light)</td><td>Signs in to the Netflex office (netflexhq.com/admin) for Parts 8, 10 and 11, and chooses and keeps the passwords.</td></tr>
+  </table>
+
+  <h3>What you need</h3>
+  <ul class="tick">
+    <li>The <b>office laptop</b> (HP, Windows 11) and its charger</li>
+    <li>A <b>network cable</b> long enough to reach from the laptop to the PoE switch (the ONV box)</li>
+    <li>A <b>straightened paper clip</b> or SIM-tray pin, to press the reset holes on the access points</li>
+    <li>A <b>ladder</b>, to reach the access points in the hallways</li>
+    <li>A <b>phone</b> for testing (any Android or iPhone)</li>
+    <li>The <b>owner's phone</b> with the authenticator app, to sign in to the Netflex office</li>
+    <li>Working internet from Starlink</li>
+  </ul>
+
+  <h3>Passwords you will create</h3>
+  <p>You will make <b>three</b> new passwords. Choose each one together with the owner. Write them down only in the owner's password manager, or on paper kept in a sealed envelope in the owner's safe.</p>
+  <table>
+    <tr><th style="width:40%">Password for</th><th>Used where</th></tr>
+    <tr><td>Omada Controller admin</td><td>To open the Omada Controller on the laptop (Part 4)</td></tr>
+    <tr><td>Hotspot operator "netflex-link"</td><td>Typed once into the lodge link (Parts 7 and 10)</td></tr>
+    <tr><td>Staff Wi-Fi "ND Lodge Staff"</td><td>Office staff only (Part 6)</td></tr>
+  </table>
+  <div class="stop"><span class="t">Never send these passwords by WhatsApp, SMS or email, to anyone, including Netflex.</span><p>Netflex will never ask for them. If someone asks, it isn't us.</p></div>
+
+  <h3>How to read this guide</h3>
+  <ul style="margin:0;padding-left:5mm">
+    <li><b>Bold words</b> are buttons, menu names or things you see on screen.</li>
+    <li><span class="k">Grey boxes like this</span> are things you type exactly as shown.</li>
+    <li>Green boxes tell you what you should see when a step worked. If you don't see it, stop and check <b>"When something goes wrong"</b> at the end.</li>
+  </ul>
+</section>
+
+<!-- 1 -->
+<section class="part">
+  <p class="eyebrow">Part 1 · 20 minutes</p>
+  <h2>Get the laptop ready</h2>
+  <p class="lede">The laptop becomes the "brain" of the Wi-Fi. It must stay on, awake and connected by cable.</p>
+
+  <h3>A. Plug it in by cable</h3>
+  <ol class="steps">
+    <li>Put the laptop somewhere safe in the office, near a power socket, where it won't be moved or closed by accident.</li>
+    <li>Plug the laptop's charger into the <b>surge protector</b> (not straight into the wall).</li>
+    <li>Plug one end of the network cable into the laptop's network port (the wide square socket on the side). Plug the other end into a <b>free port on the PoE switch</b>, the ONV box the access points are connected to.</li>
+    <li>Turn the laptop's Wi-Fi <b>off</b>: click the network icon at the bottom-right of the screen (next to the clock), then click the <b>Wi-Fi</b> tile so it turns grey.</li>
+  </ol>
+  <div class="check"><span class="t">Check</span><p>The network icon at the bottom-right now shows a small <b>screen with a cable</b>, not Wi-Fi bars. Open Chrome or Edge and visit <span class="k">google.com</span>. It should load. If not, check both ends of the cable are clicked in firmly.</p></div>
+
+  <h3>B. Stop it from sleeping</h3>
+  <ol class="steps">
+    <li>Click <b>Start</b> (the Windows logo), then <b>Settings</b> (the gear).</li>
+    <li>Click <b>System</b>, then <b>Power &amp; battery</b> (it may be called <b>Power</b>).</li>
+    <li>Open <b>Screen and sleep</b> (or <b>Screen, sleep &amp; hibernate timeouts</b>).</li>
+    <li>Set <b>"When plugged in, put my device to sleep after"</b> to <b>Never</b>. You may leave the screen turning off; that's fine.</li>
+  </ol>
+
+  <h3>C. Keep it on when the lid is closed</h3>
+  <ol class="steps">
+    <li>Click <b>Start</b>, type <span class="k">control panel</span> and open <b>Control Panel</b>.</li>
+    <li>Click <b>Hardware and Sound</b>, then <b>Power Options</b>.</li>
+    <li>On the left, click <b>Choose what closing the lid does</b>.</li>
+    <li>Next to <b>"When I close the lid"</b>, under <b>Plugged in</b>, choose <b>Do nothing</b>. Click <b>Save changes</b>.</li>
+  </ol>
+
+  <h3>D. Stop Windows restarting at busy times</h3>
+  <ol class="steps">
+    <li>Settings → <b>Windows Update</b> → <b>Advanced options</b> → <b>Active hours</b>.</li>
+    <li>Set it to <b>Manually</b>, from <b>6:00 AM</b> to <b>11:00 PM</b>. Windows then only restarts for updates at night.</li>
+  </ol>
+  <div class="done">Part 1 done: laptop on cable, never sleeps, lid can close.</div>
+</section>
+
+<!-- 2 -->
+<section class="part">
+  <p class="eyebrow">Part 2 · 10 minutes</p>
+  <h2>Install Node.js</h2>
+  <p class="lede">Node.js is free software from the Node.js Foundation. The Netflex lodge link (Part 10) needs it to run.</p>
+  <ol class="steps">
+    <li>On the laptop, open Chrome or Edge and go to <span class="k">nodejs.org</span>.</li>
+    <li>Click the big green button that says <b>Download Node.js (LTS)</b>. LTS means the stable version: use that one, not "Current".</li>
+    <li>When the download finishes, open the file (it ends in <b>.msi</b>). If Windows asks "Do you want to allow this app to make changes?", click <b>Yes</b>.</li>
+    <li>In the installer, click <b>Next</b>, tick <b>I accept the terms</b>, click <b>Next</b>, <b>Next</b>, <b>Next</b>.</li>
+    <li>On the page <b>"Tools for Native Modules"</b>, leave the box <b>unticked</b>. Click <b>Next</b>, then <b>Install</b>, then <b>Finish</b>.</li>
+  </ol>
+  <h3>Check it worked</h3>
+  <ol class="steps">
+    <li>Click <b>Start</b>, type <span class="k">powershell</span>, and open <b>Windows PowerShell</b>. A blue or black window with text appears. This is where you type commands.</li>
+    <li>Type <span class="k">node --version</span> and press <b>Enter</b>.</li>
+  </ol>
+  <div class="screen"><span class="you">PS C:\Users\Office&gt; node --version</span>
+v22.12.0</div>
+  <div class="check"><span class="t">Check</span><p>You see a line starting with <b>v</b> and a number of <b>20 or higher</b> (for example v22.12.0 or v24.1.0). Close the window.</p></div>
+  <div class="warn"><span class="t">If it says "node is not recognized"</span><p>Close PowerShell, restart the laptop, and try the check again. If it still fails, run the installer again.</p></div>
+  <div class="done">Part 2 done: Node.js installed.</div>
+</section>
+
+<!-- 3 -->
+<section class="part">
+  <p class="eyebrow">Part 3 · 20 minutes</p>
+  <h2>Reset the 3 access points</h2>
+  <p class="lede">The access points are the white discs in each hallway. They're still set up the old way (each one on its own, network name "Omada"). Resetting them lets the controller take them over.</p>
+  <div class="warn"><span class="t">Wi-Fi will be off in the lodge for about an hour</span><p>From here until Part 6, residents have no Wi-Fi. Pick a quiet time and warn them.</p></div>
+  <div class="tip"><span class="t">Why do the check first?</span><p>Each access point should have a label underneath saying <b>EAP115</b> and <b>Ver: 4.x</b>. If any says <b>Ver: 1</b> or <b>Ver: 2</b>, stop and send a photo of that label to Netflex: it may not work with the new controller.</p></div>
+  <p>Do this for <b>each</b> of the 3 access points, one at a time:</p>
+  <ol class="steps">
+    <li>Climb the ladder safely. Look at the access point: its light should be on (it gets power through its cable from the PoE switch).</li>
+    <li>Find the small <b>RESET</b> hole, on the side or near the cable socket.</li>
+    <li>Push the paper clip into the hole until you feel a click. <b>Hold it in for 10 seconds.</b></li>
+    <li>Let go when the light starts <b>flashing</b>. The access point restarts by itself. Leave it; it takes about 2 minutes.</li>
+    <li>Do <b>not</b> unplug its cable.</li>
+  </ol>
+  <div class="check"><span class="t">Check</span><p>After about 2 minutes, on your phone, look at the list of Wi-Fi networks: the old <b>"Omada"</b> network may disappear or change. That's expected. All three should have a <b>steady</b> light again.</p></div>
+  <div class="done">Part 3 done: all 3 access points reset.</div>
+</section>
+
+<!-- 4 -->
+<section class="part">
+  <p class="eyebrow">Part 4 · 30 minutes</p>
+  <h2>Install the Omada Controller</h2>
+  <p class="lede">The Omada Controller is free software from TP-Link (the maker of the access points). It runs on the laptop and manages all three access points together.</p>
+
+  <h3>A. Download and install</h3>
+  <ol class="steps">
+    <li>On the laptop, open Chrome or Edge and search for <span class="k">Omada Software Controller download</span>. Open the result on <b>omadanetworks.com</b> (TP-Link's official site).</li>
+    <li>Find the newest <b>Omada Software Controller</b> for <b>Windows</b> (version 5.x or 6.x) and click to download it. It's a large file; wait for it to finish.</li>
+    <li>If it downloaded as a <b>.zip</b> file: right-click it → <b>Extract All</b> → <b>Extract</b>. Then open the folder.</li>
+    <li>Double-click the installer (its name starts with <b>Omada_SDN_Controller</b> or <b>Omada_Network_Application</b> and ends in <b>.exe</b>). Click <b>Yes</b> if Windows asks.</li>
+    <li>Click <b>Next</b> on each screen, leaving everything as it is, then <b>Install</b>, then <b>Finish</b>.</li>
+  </ol>
+
+  <h3>B. Start it for the first time</h3>
+  <ol class="steps">
+    <li>Open <b>Omada Controller</b> from the desktop icon or the Start menu. A small window appears and starts it. The first start takes up to 5 minutes.</li>
+    <li>If a Windows Firewall box appears, tick <b>Private networks</b> and click <b>Allow access</b>.</li>
+    <li>When it's ready, the small window has a button <b>Launch a Browser to Manage the Network</b>. Click it. (You can also type <span class="k">https://127.0.0.1:8043</span> into Chrome.)</li>
+    <li>The browser shows <b>"Your connection is not private"</b>. This is normal for the controller on this laptop. Click <b>Advanced</b>, then <b>Proceed to 127.0.0.1 (unsafe)</b>.</li>
+  </ol>
+
+  <h3>C. The setup wizard</h3>
+  <ol class="steps">
+    <li><b>Controller name:</b> <span class="k">ND Lodge</span>. <b>Country:</b> Nigeria. <b>Time zone:</b> <b>(UTC+01:00) West Central Africa</b> / Africa/Lagos. Click <b>Next</b>.</li>
+    <li>If it asks to configure devices or Wi-Fi now, click <b>Skip</b>. We do that in Parts 5 and 6.</li>
+    <li><b>Admin account:</b> username <span class="k">admin</span> (or the owner's choice), and the <b>Omada admin password</b> from Part 0. Enter an email the owner reads, for password recovery.</li>
+    <li>If it offers <b>Cloud Access</b> or a <b>TP-Link ID</b>, you can turn it off or skip it. Netflex doesn't need it.</li>
+    <li>Click <b>Finish</b>, then sign in with the admin username and password.</li>
+  </ol>
+
+  <h3>D. Start it automatically</h3>
+  <ol class="steps">
+    <li>Press the <b>Windows key</b> and <b>R</b> together. Type <span class="k">shell:startup</span> and press <b>Enter</b>. A folder opens.</li>
+    <li>Find the <b>Omada Controller</b> icon on the desktop. Hold the <b>Ctrl</b> key and drag the icon into that folder, to copy it there.</li>
+  </ol>
+  <div class="warn"><span class="t">After any restart, sign in to Windows once</span><p>The controller starts when someone signs in to Windows. Stick a note on the laptop: <b>"After a restart, sign in. Don't close the Omada window."</b> If nobody does, the owner gets an email alert from Netflex.</p></div>
+  <div class="done">Part 4 done: controller installed, wizard finished, starts with Windows.</div>
+</section>
+
+<!-- 5 -->
+<section class="part">
+  <p class="eyebrow">Part 5 · 20 minutes</p>
+  <h2>Add the access points</h2>
+  <p class="where">Where: <b>Omada Controller</b> in the browser on the laptop</p>
+  <ol class="steps">
+    <li>In the controller, click <b>Devices</b> in the left menu.</li>
+    <li>You should see the 3 access points (model <b>EAP115</b>) with the status <b>Pending</b>. If not all 3 are there, wait 2 minutes and refresh the page.</li>
+    <li>Click <b>Adopt</b> next to each one (or <b>Batch Adopt</b> to do all three).</li>
+    <li>Wait. The status changes to <b>Adopting</b>, then <b>Provisioning</b>, then <b>Connected</b>. This takes 2 to 5 minutes.</li>
+    <li>If a device shows an <b>upgrade</b> arrow or says new firmware is available, click it and choose <b>Upgrade</b>. Wait until it says <b>Connected</b> again (about 5 minutes). Don't unplug anything while it upgrades.</li>
+    <li><b>Name each one</b> so you know which is which: click the access point, then the pencil next to its name, and call it <span class="k">Floor 1</span>, <span class="k">Floor 2</span>, <span class="k">Floor 3</span>. (To find which is which, compare the MAC address on its label with the one shown.)</li>
+  </ol>
+  <div class="check"><span class="t">Check</span><p>Devices shows all 3 access points as <b>Connected</b>, named Floor 1, Floor 2 and Floor 3.</p></div>
+  <div class="warn"><span class="t">If an access point says "Adopt failed" or asks for a username and password</span><p>Try username <span class="k">admin</span> and password <span class="k">admin</span> (the factory default). If that fails, reset it again (Part 3) and wait 3 minutes.</p></div>
+  <div class="done">Part 5 done: all 3 access points connected.</div>
+</section>
+
+<!-- 6 -->
+<section class="part">
+  <p class="eyebrow">Part 6 · 15 minutes</p>
+  <h2>Create the two Wi-Fi networks</h2>
+  <p class="where">Where: <b>Omada Controller</b> → <b>Settings</b> (gear, bottom-left) → <b>Wired &amp; Wireless Networks</b> → <b>WLAN</b></p>
+
+  <h3>A. The residents' network</h3>
+  <ol class="steps">
+    <li>Click <b>Create New Wireless Network</b> (or <b>+ Add</b>).</li>
+    <li>Fill it in exactly like this:
+      <table>
+        <tr><th style="width:40%">Setting</th><th>Value</th></tr>
+        <tr><td>Network Name (SSID)</td><td><span class="k">ND Lodge Wi-Fi</span></td></tr>
+        <tr><td>Band</td><td>2.4 GHz and 5 GHz (both ticked; the EAP115 only uses 2.4 GHz)</td></tr>
+        <tr><td>Guest Network</td><td><b>On</b> (keeps residents' phones from seeing each other)</td></tr>
+        <tr><td>Security</td><td><b>None</b>, no password. The sign-in page protects it.</td></tr>
+        <tr><td>SSID Broadcast</td><td>On</td></tr>
+      </table>
+    </li>
+    <li>Click <b>Apply</b> (or <b>Save</b>).</li>
+  </ol>
+
+  <h3>B. The staff network</h3>
+  <ol class="steps">
+    <li>Click <b>Create New Wireless Network</b> again.</li>
+    <li>Fill it in:
+      <table>
+        <tr><th style="width:40%">Setting</th><th>Value</th></tr>
+        <tr><td>Network Name (SSID)</td><td><span class="k">ND Lodge Staff</span></td></tr>
+        <tr><td>Security</td><td><b>WPA-Personal</b> (WPA2), with the <b>staff Wi-Fi password</b> from Part 0</td></tr>
+        <tr><td>Guest Network</td><td>Off</td></tr>
+        <tr><td>SSID Broadcast</td><td><b>Off</b> (hidden: only people who know the name can join)</td></tr>
+      </table>
+    </li>
+    <li>Click <b>Apply</b>.</li>
+  </ol>
+  <div class="tip"><span class="t">Why a staff network?</span><p>If netflexhq.com or the internet is ever down, staff can still join <b>ND Lodge Staff</b> and reach the controller to fix things. Don't give its password to residents.</p></div>
+  <div class="check"><span class="t">Check</span><p>On your phone's Wi-Fi list you see <b>ND Lodge Wi-Fi</b>. Don't join it yet: it has no sign-in page until Part 9, so for now anyone could use it freely.</p></div>
+  <div class="done">Part 6 done: both networks created.</div>
+</section>
+
+<!-- 7 -->
+<section class="part">
+  <p class="eyebrow">Part 7 · 15 minutes</p>
+  <h2>Two accounts for Netflex</h2>
+  <p class="lede">Netflex needs permission to switch residents' phones on and off. You give it two limited accounts inside the controller. Neither can change your settings or passwords.</p>
+
+  <h3>A. The hotspot operator (switches phones on)</h3>
+  <ol class="steps">
+    <li>In the controller, open <b>Hotspot Manager</b>. Depending on the version it's in the top menu, the left menu, or under the site's menu. If you can't see it, type <span class="k">hotspot</span> in the controller's search.</li>
+    <li>Click <b>Operators</b>, then <b>+ Add</b>.</li>
+    <li><b>Name:</b> <span class="k">netflex-link</span>. <b>Password:</b> the <b>hotspot operator password</b> from Part 0. <b>Site:</b> ND Lodge. Leave the rest. Click <b>Apply</b> / <b>Save</b>.</li>
+  </ol>
+
+  <h3>B. The Open API app (switches phones off early, sees who's online)</h3>
+  <ol class="steps">
+    <li>Go back to the main controller (click <b>Global View</b> or the controller name at the top-left if needed).</li>
+    <li>Open <b>Settings</b> → <b>Platform Integration</b> → <b>Open API</b>.</li>
+    <li>Click <b>+ Add New App</b>. <b>App name:</b> <span class="k">Netflex</span>. <b>Mode:</b> <b>Client</b>. <b>Role:</b> <b>Administrator</b>. <b>Site:</b> ND Lodge. Click <b>Apply</b>.</li>
+    <li>The app now shows a <b>Client ID</b> and a <b>Client Secret</b>. Leave this page open: you'll copy them in Part 10.</li>
+    <li>On the same page, find the link to the <b>API documentation</b> (it may say <b>"View API documentation"</b> or show a document icon). Open it.</li>
+    <li>In the documentation, use the search or browse to <b>Hotspot</b> / <b>Authorized clients</b>, and find the call that <b>unauthorizes</b> or <b>de-authorizes</b> a client. It looks like a line starting with <b>POST</b> and containing <b>/openapi/v1/</b>.</li>
+    <li>Take a <b>screenshot</b> of that line and send it to Netflex (WhatsApp is fine: it isn't a password).</li>
+  </ol>
+  <div class="tip"><span class="t">Can't find it?</span><p>Send a screenshot of the API documentation's list of sections instead. Everything still works without it, except cutting off access early (for example after a refund).</p></div>
+  <div class="done">Part 7 done: operator "netflex-link" created; Open API app created; screenshot sent.</div>
+</section>
+
+<!-- 8 -->
+<section class="part">
+  <p class="eyebrow">Part 8 · 5 minutes · the owner</p>
+  <h2>Register the controller in the office</h2>
+  <p class="where">Where: <b>netflexhq.com/admin</b>, on the laptop or any computer, signed in as the owner</p>
+  <ol class="steps">
+    <li>Sign in at <span class="k">netflexhq.com/admin</span> with the owner's email, password and authenticator code.</li>
+    <li>Click <b>Network</b> in the left menu (the globe icon).</li>
+    <li>Click <b>Add Omada controller</b> (top-right).</li>
+    <li><b>Name:</b> leave <b>Omada controller</b>. <b>Equipment:</b> <span class="k">3× EAP115 v4</span>. Click <b>Add controller</b>.</li>
+    <li>Under <b>Equipment</b> you now see <b>Omada controller</b> with <b>Lodge link: Not paired</b>. That's expected.</li>
+    <li>Find <b>Omada portal address</b>. It looks like <span class="k">https://netflexhq.com/connect/omada/…</span> followed by a long code. Click the <b>copy</b> icon next to it.</li>
+    <li>If you're on another computer, send this address to the laptop: paste it into an email to yourself, or write it down carefully. (It isn't secret.)</li>
+  </ol>
+  <div class="check"><span class="t">Check</span><p>The Network page shows the Omada controller and its portal address.</p></div>
+  <div class="done">Part 8 done: controller added in the office; portal address copied.</div>
+</section>
+
+<!-- 9 -->
+<section class="part">
+  <p class="eyebrow">Part 9 · 20 minutes</p>
+  <h2>Turn on the sign-in page</h2>
+  <p class="lede">This makes every phone that joins <b>ND Lodge Wi-Fi</b> see the Netflex page first, where residents enter a code or buy a plan.</p>
+  <p class="where">Where: <b>Omada Controller</b> → <b>Settings</b> → <b>Authentication</b> → <b>Portal</b></p>
+
+  <h3>A. Create the portal</h3>
+  <ol class="steps">
+    <li>Click <b>Create New Portal</b> (or <b>+ Add</b>).</li>
+    <li>Fill it in:
+      <table>
+        <tr><th style="width:40%">Setting</th><th>Value</th></tr>
+        <tr><td>Portal Name</td><td><span class="k">Netflex</span></td></tr>
+        <tr><td>SSID &amp; Network</td><td>Tick <b>ND Lodge Wi-Fi</b> only (<b>not</b> ND Lodge Staff)</td></tr>
+        <tr><td>Authentication Type</td><td><b>External Portal Server</b></td></tr>
+        <tr><td>Custom Portal Server</td><td>Choose <b>URL</b> and paste the <b>Omada portal address</b> from Part 8</td></tr>
+        <tr><td>HTTPS Redirection</td><td><b>On</b></td></tr>
+        <tr><td>Landing Page</td><td><b>The Original URL</b></td></tr>
+      </table>
+    </li>
+    <li>Click <b>Apply</b>.</li>
+  </ol>
+
+  <h3>B. Let people reach the payment pages before paying</h3>
+  <ol class="steps">
+    <li>Still under <b>Authentication</b>, open <b>Portal</b> → your <b>Netflex</b> portal → <b>Access Control</b> (in some versions it's a separate tab called <b>Access Control</b> under Authentication).</li>
+    <li>Turn on <b>Pre-Authentication Access</b>.</li>
+    <li>Add each of these as type <b>URL</b>, one at a time, clicking <b>+ Add</b> for each:
+      <table>
+        <tr><th style="width:12%">#</th><th>URL (type exactly)</th></tr>
+        <tr><td>1</td><td><span class="k">netflexhq.com</span></td></tr>
+        <tr><td>2</td><td><span class="k">checkout.paystack.com</span></td></tr>
+        <tr><td>3</td><td><span class="k">js.paystack.co</span></td></tr>
+        <tr><td>4</td><td><span class="k">api.paystack.co</span></td></tr>
+        <tr><td>5</td><td><span class="k">paystack.com</span></td></tr>
+      </table>
+    </li>
+    <li>Click <b>Apply</b>.</li>
+  </ol>
+  <div class="tip"><span class="t">About card payments</span><p>Some banks show their own security page during a card payment. If a payment on the lodge Wi-Fi gets stuck on a bank page, the resident can pay on mobile data instead. Tell Netflex which bank, and we can add it here.</p></div>
+  <div class="done">Part 9 done: portal created; 5 payment addresses added.</div>
+</section>
+
+<!-- 10 -->
+<section class="part">
+  <p class="eyebrow">Part 10 · 25 minutes</p>
+  <h2>Install the lodge link</h2>
+  <p class="lede">The lodge link is a small Netflex program. It lets netflexhq.com tell the controller "switch this phone on for 24 hours", even though the lodge has no public internet address.</p>
+
+  <h3>A. Download it</h3>
+  <ol class="steps">
+    <li>On the laptop, sign in at <span class="k">netflexhq.com/admin</span> (the owner's account) → <b>Network</b>.</li>
+    <li>Under <b>Omada controller</b>, click <b>Pair lodge link</b>. In the panel that opens, click <b>download it here</b>. Close the panel for now with the <b>×</b>.</li>
+    <li>Open the <b>Downloads</b> folder, right-click <b>lodge-link.zip</b> → <b>Extract All…</b></li>
+    <li>In the box, replace the folder with <span class="k">C:\NetFlex</span> and click <b>Extract</b>. You now have the folder <b>C:\NetFlex\lodge-link</b>.</li>
+  </ol>
+
+  <h3>B. Open PowerShell as administrator</h3>
+  <ol class="steps">
+    <li>Click <b>Start</b>, type <span class="k">powershell</span>. On the right, click <b>Run as administrator</b>. Click <b>Yes</b>.</li>
+    <li>Type this and press <b>Enter</b>: <span class="k">cd C:\NetFlex\lodge-link</span></li>
+  </ol>
+
+  <h3>C. Enter the settings</h3>
+  <ol class="steps">
+    <li>Type <span class="k">node lodge-link.mjs setup</span> and press <b>Enter</b>. It asks 6 questions, one by one. Type the answer and press <b>Enter</b> after each:
+      <table>
+        <tr><th style="width:42%">Question</th><th>Answer</th></tr>
+        <tr><td>NetFlex address</td><td>Just press <b>Enter</b> (keeps https://netflexhq.com)</td></tr>
+        <tr><td>Omada controller address</td><td>Just press <b>Enter</b> (keeps https://127.0.0.1:8043)</td></tr>
+        <tr><td>Hotspot operator name</td><td>Just press <b>Enter</b> (keeps netflex-link)</td></tr>
+        <tr><td>Hotspot operator password</td><td>Type the <b>hotspot operator password</b> from Part 7A</td></tr>
+        <tr><td>Open API client ID</td><td>Copy the <b>Client ID</b> from Part 7B and paste it (right-click pastes in PowerShell)</td></tr>
+        <tr><td>Open API client secret</td><td>Copy and paste the <b>Client Secret</b> from Part 7B</td></tr>
+      </table>
+    </li>
+  </ol>
+  <div class="screen">Saved C:\NetFlex\lodge-link\lodge-link.json. Next: node lodge-link.mjs check</div>
+
+  <h3>D. Pair it with the office</h3>
+  <ol class="steps">
+    <li>In the office (Network page), click <b>Pair lodge link</b> again, then <b>Make a pairing code</b>. You see a code like <b>K7QH-3MZP</b>. It works once, for 30 minutes.</li>
+    <li>In PowerShell, type <span class="k">node lodge-link.mjs pair</span>, a space, then the code, and press <b>Enter</b>. For example: <span class="k">node lodge-link.mjs pair K7QH-3MZP</span></li>
+  </ol>
+  <div class="screen">Paired with "Omada controller". Next: node lodge-link.mjs check</div>
+  <p>Click <b>Done</b> in the office panel.</p>
+
+  <h3>E. Check everything answers</h3>
+  <ol class="steps">
+    <li>Type <span class="k">node lodge-link.mjs check</span> and press <b>Enter</b>.</li>
+  </ol>
+  <div class="screen">Controller OK (Omada 5.15.8)
+Switch devices off early: not set up (Open API)
+List connected devices:   yes
+Server OK (paired)</div>
+  <div class="check"><span class="t">Check</span><p>You see <b>Controller OK</b> and <b>Server OK</b>. "Switch devices off early: not set up" is normal until Netflex sends one extra setting from your Part 7 screenshot.</p></div>
+
+  <h3>F. Make it start by itself</h3>
+  <ol class="steps">
+    <li>Type <span class="k">powershell -ExecutionPolicy Bypass -File .\install.ps1</span> and press <b>Enter</b>.</li>
+  </ol>
+  <div class="screen">Installed and started 'NetFlex Lodge Link'. It starts by itself whenever the computer turns on.</div>
+  <div class="check"><span class="t">Check</span><p>In the office, refresh the Network page. Within a minute, <b>Lodge link</b> says <b>Online</b>, and the Omada controller shows <b>Working</b> after you click <b>Check now</b>.</p></div>
+  <div class="done">Part 10 done: lodge link installed, paired and online.</div>
+</section>
+
+<!-- 11 -->
+<section class="part">
+  <p class="eyebrow">Part 11 · 20 minutes</p>
+  <h2>Test with a real phone</h2>
+  <p class="lede">Prove that a code really turns the Wi-Fi on, before any resident pays.</p>
+
+  <h3>A. Make a free test code (owner, in the office)</h3>
+  <ol class="steps">
+    <li>Office → <b>Vouchers</b> → <b>Make vouchers</b>.</li>
+    <li><b>Plan:</b> Daily. <b>How many:</b> 1. <b>Note:</b> <span class="k">setup test</span>. Click <b>Make codes</b>.</li>
+    <li>Write the code down. It's only shown once.</li>
+  </ol>
+
+  <h3>B. Use it on the test phone</h3>
+  <ol class="steps">
+    <li>On the test phone, turn <b>mobile data off</b>.</li>
+    <li>In Wi-Fi settings, join <b>ND Lodge Wi-Fi</b>.</li>
+    <li>Within a few seconds, a sign-in page should pop up showing <b>ND Lodge</b>. If nothing pops up, open the browser and go to any website, like <span class="k">google.com</span>: you'll be sent to the sign-in page.</li>
+    <li>Tap <b>I have a voucher</b>, type the code, tap <b>Connect</b>.</li>
+    <li>Wait up to a minute. The page says <b>You're connected</b>.</li>
+    <li>Open <span class="k">google.com</span> and a video on YouTube to check the internet really works.</li>
+  </ol>
+
+  <h3>C. Check the time is right</h3>
+  <ol class="steps">
+    <li>In the Omada Controller on the laptop, open <b>Hotspot Manager</b> → <b>Authorized Clients</b>.</li>
+    <li>Find the test phone. Look at its <b>expiry</b> or <b>valid until</b> time.</li>
+    <li>Take a <b>screenshot</b> and send it to Netflex.</li>
+  </ol>
+  <div class="check"><span class="t">Check</span><p>The expiry is about <b>24 hours from now</b> (tomorrow, around the same time).</p></div>
+  <div class="warn"><span class="t">If the expiry looks wrong (1970, a few minutes, or weeks away)</span><p>Don't worry: it's one setting. Send the screenshot to Netflex and we'll send back the exact line to change.</p></div>
+
+  <h3>D. Check the other floors</h3>
+  <ol class="steps">
+    <li>Walk to each floor with the test phone. Open a few websites in each hallway and in one room at the far end of each floor.</li>
+    <li>Note any room where it's slow or drops out.</li>
+  </ol>
+  <div class="done">Part 11 done: test phone online; expiry screenshot sent; all floors checked.</div>
+</section>
+
+<!-- 12 -->
+<section class="part">
+  <p class="eyebrow">Part 12 · 5 minutes</p>
+  <h2>Finish and keep it running</h2>
+  <h3>Send Netflex</h3>
+  <ul class="tick">
+    <li>Screenshot of the <b>unauthorize</b> call (Part 7B)</li>
+    <li>Screenshot of the test phone's <b>expiry</b> (Part 11C)</li>
+    <li>Screenshot of Omada <b>Devices</b>, showing all 3 access points <b>Connected</b></li>
+    <li>Any rooms with a weak signal (Part 11D)</li>
+  </ul>
+  <p>Netflex then finishes the last settings and runs the final test with you. Only after that are paid sales switched on.</p>
+
+  <h3>Every day</h3>
+  <ul class="tick">
+    <li>Leave the laptop <b>on, plugged in, on its cable</b>. Don't unplug the cable or the switch.</li>
+    <li>If the laptop restarts, <b>sign in to Windows</b> so the Omada Controller starts.</li>
+    <li>If the owner gets an email from Netflex saying <b>"Wi-Fi equipment isn't answering"</b>, check the laptop first.</li>
+  </ul>
+
+  <h3>Record (no passwords here)</h3>
+  <table>
+    <tr><th style="width:45%">Item</th><th>Write it here</th></tr>
+    <tr><td>Date set up</td><td><span class="write">&nbsp;</span></td></tr>
+    <tr><td>Set up by</td><td><span class="write">&nbsp;</span></td></tr>
+    <tr><td>Omada Controller version</td><td><span class="write">&nbsp;</span></td></tr>
+    <tr><td>Omada admin username</td><td><span class="write">&nbsp;</span></td></tr>
+    <tr><td>Where the passwords are kept</td><td><span class="write">&nbsp;</span></td></tr>
+    <tr><td>Floor 1 access point MAC</td><td><span class="write">&nbsp;</span></td></tr>
+    <tr><td>Floor 2 access point MAC</td><td><span class="write">&nbsp;</span></td></tr>
+    <tr><td>Floor 3 access point MAC</td><td><span class="write">&nbsp;</span></td></tr>
+  </table>
+</section>
+
+<!-- Troubleshooting -->
+<section class="part">
+  <p class="eyebrow">Help</p>
+  <h2>When something goes wrong</h2>
+  <table>
+    <tr><th style="width:38%">What you see</th><th>What to do</th></tr>
+    <tr><td>Access point not in Omada Devices</td><td>Check its light is on. Check the laptop's cable goes to the <b>same switch</b>. Reset it again (Part 3), wait 3 minutes, refresh.</td></tr>
+    <tr><td>Browser says "not private" at 127.0.0.1:8043</td><td>Normal. <b>Advanced</b> → <b>Proceed</b>.</td></tr>
+    <tr><td>Controller page won't open at all</td><td>Open <b>Omada Controller</b> from the Start menu and wait 5 minutes for it to start.</td></tr>
+    <tr><td>"node is not recognized"</td><td>Restart the laptop. If it continues, install Node.js again (Part 2).</td></tr>
+    <tr><td>"No settings yet"</td><td>You're in the wrong folder, or setup wasn't run. Type <span class="k">cd C:\NetFlex\lodge-link</span>, then run setup (Part 10C).</td></tr>
+    <tr><td>"That pairing code is wrong or has expired"</td><td>Codes work once, for 30 minutes. Make a new one in the office and type it carefully (letters and numbers, with the dash).</td></tr>
+    <tr><td>Check says "Controller problem: … Invalid username or password"</td><td>The operator password in setup doesn't match Part 7A. Run <span class="k">node lodge-link.mjs setup</span> again and retype it.</td></tr>
+    <tr><td>Check says "controller unreachable"</td><td>The Omada Controller isn't running. Start it from the Start menu and wait.</td></tr>
+    <tr><td>Check says "Server problem"</td><td>The laptop has no internet. Check the cable and that <span class="k">google.com</span> loads.</td></tr>
+    <tr><td>Office says lodge link <b>Offline</b></td><td>Is the laptop on and awake, with the cable in? Restart it and sign in. The link starts by itself.</td></tr>
+    <tr><td>Phone joins ND Lodge Wi-Fi but no sign-in page</td><td>Open a browser and go to <span class="k">google.com</span>. If still nothing, check the portal is ticked for <b>ND Lodge Wi-Fi</b> (Part 9A).</td></tr>
+    <tr><td>Sign-in page says "Wi-Fi sign-in is temporarily unavailable"</td><td>The lodge link is offline or the controller is stopped. Check the laptop.</td></tr>
+    <tr><td>Code accepted but no internet after 2 minutes</td><td>Take a screenshot of the phone, and of Office → Network → <b>Recent instructions</b>, and send them to Netflex.</td></tr>
+  </table>
+
+  <h3>Words used in this guide</h3>
+  <table>
+    <tr><th style="width:30%">Word</th><th>Meaning</th></tr>
+    <tr><td>Access point</td><td>The white disc in each hallway that sends out the Wi-Fi.</td></tr>
+    <tr><td>PoE switch</td><td>The ONV box the access points plug into. It gives them power and internet through one cable.</td></tr>
+    <tr><td>Omada Controller</td><td>TP-Link's free program on the laptop that manages all the access points.</td></tr>
+    <tr><td>Sign-in page (portal)</td><td>The Netflex page a phone sees first when it joins ND Lodge Wi-Fi.</td></tr>
+    <tr><td>Lodge link</td><td>The small Netflex program on the laptop that passes "switch on / switch off" from netflexhq.com to the controller.</td></tr>
+    <tr><td>Office</td><td>The staff area of the website, at netflexhq.com/admin.</td></tr>
+    <tr><td>PowerShell</td><td>The Windows window where you type commands.</td></tr>
+  </table>
+</section>
+
+</body>
+</html>
