@@ -17,6 +17,7 @@
     "@netflex/core": "0.1.0",
     "@netflex/database": "0.1.0",
     "@netflex/domain": "0.1.0",
+    "@netflex/email": "0.1.0",
     "@netflex/observability": "0.1.0",
     "@netflex/payments": "0.1.0",
     "@netflex/security": "0.1.0",

@@ -6,6 +6,7 @@ import {
 } from '@netflex/core';
 import type { PrismaClient } from '@netflex/database';
 import type { Logger } from '@netflex/observability';
+import type { Notifier } from './notifications.js';
 
 export interface JobLike {
   id?: string;
@@ -24,6 +25,7 @@ export function createPaymentProcessor(
   log: Logger,
   prisma?: PrismaClient,
   network?: NetworkEngine,
+  notifier?: Notifier,
 ) {
   return async (job: JobLike): Promise<unknown> => {
     const payload = job.data.payload ?? {};
@@ -86,6 +88,24 @@ export function createPaymentProcessor(
           'network reconciliation run',
         );
         return r;
+      }
+      case 'notification.voucher_ready': {
+        if (!notifier) throw new Error('notifier not configured');
+        const r = await notifier.receipt(str('orderId'));
+        log.info({ job: job.name, result: r }, 'receipt');
+        return r;
+      }
+      case 'notifications.reminders': {
+        if (!notifier) throw new Error('notifier not configured');
+        const r = await notifier.planEndingReminders();
+        if (r.sent) log.info({ job: job.name, ...r }, 'plan-ending reminders');
+        return r;
+      }
+      case 'ops.alerts': {
+        if (!notifier) throw new Error('notifier not configured');
+        const n = await notifier.opsAlerts();
+        if (n) log.warn({ job: job.name, alerts: n }, 'owner alerts sent');
+        return n;
       }
       default:
         throw new Error(`no processor for job ${job.name}`);

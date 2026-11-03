@@ -13,6 +13,7 @@ import { Redis } from 'ioredis';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { writeHeartbeat } from './heartbeat.js';
 import { relayOutboxBatch } from './outbox-relay.js';
+import { Notifier, mailerFrom } from './notifications.js';
 import { createPaymentProcessor } from './processors.js';
 import { createBullSink } from './queues.js';
 
@@ -58,7 +59,11 @@ async function main(): Promise<void> {
   if (registry.fake)
     log.warn('NETWORK_ADAPTER=fake: simulated gateway only; nothing is enforced on a real network');
   const network = new NetworkEngine(prisma, registry);
-  const process_ = createPaymentProcessor(engine, log, prisma, network);
+  const mailer = mailerFrom(config);
+  if (!mailer.configured)
+    log.warn('EMAIL_PROVIDER=none: receipts, reminders and alerts are not emailed');
+  const notifier = new Notifier(prisma, mailer, config.PUBLIC_WEB_URL, log);
+  const process_ = createPaymentProcessor(engine, log, prisma, network, notifier);
   const workers = [
     new Worker('payments', process_, { connection: redis, prefix: 'netflex', concurrency: 4 }),
     new Worker('reconciliation', process_, {
@@ -67,6 +72,7 @@ async function main(): Promise<void> {
       concurrency: 1,
     }),
     new Worker('maintenance', process_, { connection: redis, prefix: 'netflex', concurrency: 1 }),
+    new Worker('notifications', process_, { connection: redis, prefix: 'netflex', concurrency: 2 }),
     // Gateway changes are serialized per worker to avoid flooding a small router.
     new Worker('provisioning', process_, { connection: redis, prefix: 'netflex', concurrency: 2 }),
   ];
@@ -105,6 +111,17 @@ async function main(): Promise<void> {
       { every: RECONCILE_EVERY_MS },
       { name: 'reconcile.payments', data: {} },
     );
+
+  await sink.queues
+    .get('maintenance')
+    ?.upsertJobScheduler(
+      'plan-ending-reminders',
+      { every: 30 * 60_000 },
+      { name: 'notifications.reminders', data: {} },
+    );
+  await sink.queues
+    .get('maintenance')
+    ?.upsertJobScheduler('owner-alerts', { every: 15 * 60_000 }, { name: 'ops.alerts', data: {} });
 
   let stopping = false;
   const stop = (signal: string) => {

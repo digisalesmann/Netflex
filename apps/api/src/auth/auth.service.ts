@@ -23,7 +23,7 @@ import { CONFIG, PRISMA } from '../infra/tokens.js';
 import type { AuthContext } from './auth.types.js';
 import type { RequestMetaValue } from './decorators.js';
 import { MAILER, type Mailer } from '../email/mailer.js';
-import { signInCodeEmail } from '../email/templates.js';
+import { signInCodeEmail } from '@netflex/email';
 import { SessionService } from './session.service.js';
 
 const OTP_TTL_MS = 5 * 60_000;
@@ -283,15 +283,23 @@ export class AuthService {
         expiresAt: new Date(Date.now() + OTP_TTL_MS),
       },
     });
-    await this.mailer.send(
-      email,
-      signInCodeEmail({
-        brand: await this.brand(),
-        to: email,
-        code,
-        minutes: OTP_TTL_MS / 60_000,
-      }),
-    );
+    await this.mailer
+      .send(
+        email,
+        signInCodeEmail({
+          brand: await this.brand(),
+          to: email,
+          code,
+          minutes: OTP_TTL_MS / 60_000,
+        }),
+      )
+      .catch(() => {
+        throw new ApiError(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          'SERVICE_UNAVAILABLE',
+          'We couldn’t send the email. Please try again in a minute.',
+        );
+      });
   }
 
   async verifyOtp(

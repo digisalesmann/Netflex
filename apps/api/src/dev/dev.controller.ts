@@ -20,7 +20,7 @@ import type { Response } from 'express';
 import { z } from 'zod';
 import { Public, SkipCsrf } from '../auth/decorators.js';
 import { FakeMailer, MAILER, type Mailer } from '../email/mailer.js';
-import { signInCodeEmail } from '../email/templates.js';
+import { signInCodeEmail } from '@netflex/email';
 import { ApiError } from '../common/api-error.js';
 import { ZodPipe, email } from '../common/zod.js';
 import {

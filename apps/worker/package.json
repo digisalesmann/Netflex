@@ -12,6 +12,7 @@
     "@netflex/config": "0.1.0",
     "@netflex/core": "0.1.0",
     "@netflex/database": "0.1.0",
+    "@netflex/email": "0.1.0",
     "@netflex/observability": "0.1.0",
     "@netflex/payments": "0.1.0",
     "bullmq": "^5.56.0",

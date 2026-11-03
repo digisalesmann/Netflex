@@ -14,6 +14,7 @@ const alias = {
   '@netflex/payments': pkg('payments'),
   '@netflex/core': pkg('core'),
   '@netflex/network': pkg('network'),
+  '@netflex/email': pkg('email'),
 };
 
 export default defineConfig({

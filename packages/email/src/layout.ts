@@ -91,6 +91,34 @@ export const button = (label: string, href: string) => `
   </tr>
 </table>`;
 
+/** Receipt-style lines on a tinted ticket; the last row can be a bold total. */
+export const receiptLines = (rows: [string, string][], total?: [string, string]) => `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px;">
+  <tr>
+    <td class="nf-tint" bgcolor="${C.tint}" style="background:${C.tint};border-radius:14px;padding:18px 20px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        ${rows
+          .map(
+            ([k, v]) => `<tr>
+          <td style="padding:5px 0;font-family:${FONT};font-size:14px;line-height:20px;color:${C.muted};">${esc(k)}</td>
+          <td align="right" style="padding:5px 0;font-family:${FONT};font-size:14px;line-height:20px;color:${C.text};">${esc(v)}</td>
+        </tr>`,
+          )
+          .join('')}
+        ${
+          total
+            ? `<tr><td colspan="2" style="padding:8px 0 0;font-size:0;line-height:0;"><div class="nf-tear" style="border-top:2px dashed ${C.border};height:0;line-height:0;font-size:0;">&nbsp;</div></td></tr>
+        <tr>
+          <td style="padding:12px 0 0;font-family:${MONO};font-size:16px;line-height:22px;font-weight:700;color:${C.text};">${esc(total[0])}</td>
+          <td align="right" style="padding:12px 0 0;font-family:${MONO};font-size:16px;line-height:22px;font-weight:700;color:${C.text};">${esc(total[1])}</td>
+        </tr>`
+            : ''
+        }
+      </table>
+    </td>
+  </tr>
+</table>`;
+
 export const divider = () =>
   `<div style="border-top:1px solid ${C.border};height:0;line-height:0;font-size:0;margin:24px 0;">&nbsp;</div>`;
 

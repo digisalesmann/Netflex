@@ -9,6 +9,7 @@
   },
   "include": ["src"],
   "references": [
+    { "path": "../../packages/email" },
     {
       "path": "../../packages/config"
     },

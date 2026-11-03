@@ -1,6 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import type { DefaultAdapterRegistry, PaymentEngine } from '@netflex/core';
+import { FakeMailer } from '@netflex/email';
 import type { FakeNetworkAdapter } from '@netflex/network';
+import type { Logger } from '@netflex/observability';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -15,6 +17,7 @@ import {
   type Agent,
   type Harness,
 } from '../../../scripts/test/api-harness.js';
+import { Notifier } from '../../worker/src/notifications.js';
 import { ADAPTER_REGISTRY, PAYMENT_ENGINE } from './infra/tokens.js';
 
 let h: Harness;
@@ -409,5 +412,114 @@ describe('tenant account', () => {
         orderId: o.body.data.orderId,
       })
       .expect(404);
+  });
+});
+
+describe('worker emails (receipts, plan-ending reminders, owner alerts)', () => {
+  const quiet = { info() {}, warn() {} } as unknown as Logger;
+  const make = () => {
+    const mailer = new FakeMailer('test');
+    return { mailer, n: new Notifier(h.prisma, mailer, 'https://wifi.test', quiet) };
+  };
+
+  async function paidOrder() {
+    const t = await tenant();
+    const o = await t.agent
+      .post('/api/v1/orders')
+      .set(CSRF)
+      .set(XFF())
+      .set('idempotency-key', idem())
+      .send({ planVersionId, target: { scope: 'INDIVIDUAL' } });
+    const c = await t.agent
+      .post(`/api/v1/orders/${o.body.data.orderId}/checkout`)
+      .set(CSRF)
+      .set(XFF())
+      .set('idempotency-key', idem())
+      .send({ email: t.email });
+    await request(h.server)
+      .post(new URL(c.body.data.checkoutUrl).pathname)
+      .type('form')
+      .send({ outcome: 'success' })
+      .expect(303);
+    return { ...t, orderId: o.body.data.orderId as string, reference: o.body.data.reference };
+  }
+
+  it('sends one receipt per paid order, and none when the resident turned receipts off', async () => {
+    const { mailer, n } = make();
+    const t = await paidOrder();
+    expect(await n.receipt(t.orderId)).toBe('SENT');
+    const m = mailer.last(t.email);
+    expect(m?.email.tag).toBe('receipt');
+    expect(m?.email.subject).toContain('Day pass');
+    expect(m?.email.text).toContain(t.reference);
+    expect(m?.email.text).toContain('₦500');
+    // A retried job doesn't email twice.
+    expect(await n.receipt(t.orderId)).toBe('already sent');
+    expect(mailer.count(t.email)).toBe(1);
+    const row = await h.prisma.notification.findFirstOrThrow({
+      where: { template: 'receipt', userId: t.userId },
+    });
+    expect(row).toMatchObject({ status: 'SENT', channel: 'EMAIL', params: { orderId: t.orderId } });
+
+    const off = await paidOrder();
+    await off.agent
+      .put('/api/v1/me/preferences')
+      .set(CSRF)
+      .send({
+        sms: { expiryReminders: true, receipts: true, outageNotices: true },
+        email: { expiryReminders: true, receipts: false, outageNotices: true },
+      })
+      .expect(200);
+    expect(await n.receipt(off.orderId)).toBe('turned off');
+    expect(mailer.count(off.email)).toBe(0);
+  });
+
+  it('reminds once when a plan ends within a day', async () => {
+    const { mailer, n } = make();
+    const t = await paidOrder();
+    const e = await h.prisma.entitlement.findFirstOrThrow({
+      where: { subscription: { orderId: t.orderId } },
+    });
+    const now = new Date();
+    await h.prisma.entitlement.update({
+      where: { id: e.id },
+      data: {
+        status: 'ACTIVE',
+        startsAt: new Date(now.getTime() - 12 * 3_600_000),
+        expiresAt: new Date(now.getTime() + 10 * 3_600_000),
+      },
+    });
+    await n.planEndingReminders(now);
+    expect(mailer.last(t.email)?.email.tag).toBe('plan-ending');
+    expect(mailer.last(t.email)?.email.text).toContain('Day pass');
+    await n.planEndingReminders(now);
+    expect(mailer.count(t.email)).toBe(1);
+  });
+
+  it('emails platform owners about broken equipment at most once a day', async () => {
+    const { mailer, n } = make();
+    const boss = await createStaff(h.prisma, [{ role: 'OWNER', propertyId: null }]);
+    const was = (await h.prisma.gateway.findUniqueOrThrow({ where: { id: P.gatewayId } })).status;
+    await h.prisma.gateway.update({ where: { id: P.gatewayId }, data: { status: 'UNREACHABLE' } });
+    try {
+      await n.opsAlerts();
+      const m = mailer.last(boss.email);
+      expect(m?.email.tag).toBe('ops-alert');
+      expect(m?.email.subject).toContain('Wi-Fi equipment');
+      await n.opsAlerts();
+      expect(mailer.count(boss.email)).toBe(
+        await h.prisma.notification.count({ where: { template: 'ops_alert', userId: boss.id } }),
+      );
+      const ours = await h.prisma.notification.count({
+        where: {
+          template: 'ops_alert',
+          userId: boss.id,
+          params: { path: ['dedupe'], string_starts_with: `${P.id}:gateway_down:` },
+        },
+      });
+      expect(ours).toBe(1);
+    } finally {
+      await h.prisma.gateway.update({ where: { id: P.gatewayId }, data: { status: was } });
+    }
   });
 });
