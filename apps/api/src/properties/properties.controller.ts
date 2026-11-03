@@ -37,6 +37,14 @@ const CreateProperty = z.strictObject({
   supportEmail: email.optional(),
 });
 const Name = z.strictObject({ name: z.string().trim().min(1).max(80) });
+/** Lodge details shown on the site, the Wi-Fi sign-in page, receipts and emails. */
+const Settings = z
+  .strictObject({
+    name: z.string().trim().min(2).max(120).optional(),
+    supportPhone: z.string().trim().max(32).nullable().optional(),
+    supportEmail: email.nullable().optional(),
+  })
+  .refine((b) => Object.keys(b).length > 0, 'Nothing to change.');
 const CreateFloor = z.strictObject({
   label: z.string().trim().min(1).max(40),
   level: z.number().int().min(-5).max(200),
@@ -62,7 +70,15 @@ export class PropertiesController {
     return this.prisma.property.findMany({
       where: scope === 'ALL' ? {} : { id: { in: scope } },
       orderBy: { name: 'asc' },
-      select: { id: true, slug: true, name: true, timeZone: true, currency: true },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        timeZone: true,
+        currency: true,
+        supportPhone: true,
+        supportEmail: true,
+      },
     });
   }
 
@@ -192,6 +208,27 @@ export class PropertiesController {
       if (!r) throw notFound();
       return tx.room.update({ where: { id: r.id }, data: { label: body.label } });
     }).catch((e: unknown) => conflictOnUnique(e, 'This floor already has a room with that label.'));
+  }
+
+  @RequirePermission('settings.manage')
+  @Patch(':propertyId')
+  async updateSettings(
+    @CurrentAuth() auth: AuthContext,
+    @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
+    @Body(new ZodPipe(Settings)) body: z.infer<typeof Settings>,
+    @RequestMeta() meta: RequestMetaValue,
+  ) {
+    return this.mutate(auth, meta, propertyId, 'property.settings_changed', 'property', (tx) =>
+      tx.property.update({
+        where: { id: propertyId },
+        data: {
+          ...(body.name !== undefined ? { name: body.name } : {}),
+          ...(body.supportPhone !== undefined ? { supportPhone: body.supportPhone || null } : {}),
+          ...(body.supportEmail !== undefined ? { supportEmail: body.supportEmail || null } : {}),
+        },
+        select: { id: true, name: true, supportPhone: true, supportEmail: true },
+      }),
+    );
   }
 
   private mutate<T extends { id: string }>(

@@ -10,6 +10,7 @@ import { AccountController } from './account/account.controller.js';
 import { AuditController } from './audit/audit.controller.js';
 import { DevSimulatorController } from './dev/dev.controller.js';
 import { PortalController } from './portal/portal.controller.js';
+import { SupportAdminController } from './support/support-admin.controller.js';
 import { SupportController } from './support/support.controller.js';
 import { AuditService } from './audit/audit.service.js';
 import { AuthController } from './auth/auth.controller.js';
@@ -103,6 +104,7 @@ export class AppModule {
         NetworkController,
         PortalController,
         SupportController,
+        SupportAdminController,
         AccountController,
         // Development/test simulators exist only when a test-only provider is active.
         ...(config.PAYMENT_PROVIDER === 'fake' ||

@@ -78,6 +78,8 @@ const ACTIONS: Record<string, string> = {
   'staff.disabled': 'disabled a staff account',
   'staff.credentials_reset': 'reset someone’s sign-in',
   'support.ticket_created': 'support message received',
+  'support.ticket_updated': 'updated a support request',
+  'property.settings_changed': 'changed the lodge details',
   'privacy.data_exported': 'resident downloaded their data',
   'privacy.erasure_requested': 'resident asked to delete their data',
 };
