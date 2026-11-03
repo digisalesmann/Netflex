@@ -41,6 +41,18 @@ const NAV: (NavItem & { need?: Permission })[] = [
     need: 'payment.read',
     icon: 'M3.5 6.5h17v11h-17zM3.5 10h17M7 14.5h3',
   },
+  {
+    href: '/admin/staff',
+    label: 'Staff',
+    need: 'staff.read',
+    icon: 'M12 3.5 5 6.5v5c0 4.3 3 7.6 7 8.9 4-1.3 7-4.6 7-8.9v-5zM12 11a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5zM8.5 15.5c.6-1.7 1.9-2.6 3.5-2.6s2.9.9 3.5 2.6',
+  },
+  {
+    href: '/admin/activity',
+    label: 'Activity',
+    need: 'audit.read',
+    icon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7.5V12l3 2',
+  },
 ];
 
 export default async function OfficeLayout({ children }: { children: ReactNode }) {

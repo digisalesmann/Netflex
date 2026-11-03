@@ -1,0 +1,111 @@
+/** Plain-English labels for activity-log entries. Unknown actions fall back to a tidy version of the code. */
+const ACTIONS: Record<string, string> = {
+  'auth.staff.password_ok': 'signed in (password)',
+  'auth.staff.login_failed': 'failed office sign-in',
+  'auth.staff.mfa_verified': 'passed two-step sign-in',
+  'auth.staff.mfa_enrolled': 'set up two-step sign-in',
+  'auth.staff.mfa_failed': 'entered a wrong two-step code',
+  'auth.staff.password_changed': 'changed their password',
+  'auth.tenant.login': 'resident signed in',
+  'auth.tenant.registered': 'new resident account',
+  'auth.logout': 'signed out',
+  'auth.logout_all': 'signed out everywhere',
+  'auth.session_revoked': 'signed out a device',
+  'property.created': 'created the property',
+  'building.created': 'added a building',
+  'building.renamed': 'renamed a building',
+  'floor.created': 'added a floor',
+  'room.created': 'added a room',
+  'room.renamed': 'renamed a room',
+  'tenant.created': 'added a resident',
+  'tenant.assigned': 'moved a resident in',
+  'tenant.moved': 'moved a resident to another room',
+  'tenant.departed': 'recorded a move-out',
+  'group_authority.granted': 'gave room/floor buying rights',
+  'group_authority.revoked': 'removed buying rights',
+  'group.member_added': 'added a housemate to a plan',
+  'group.member_removed': 'removed a housemate from a plan',
+  'group.manager_transferred': 'handed over a group plan',
+  'plan.created': 'created a plan',
+  'plan.version_created': 'saved a new plan version',
+  'plan.version_published': 'put a plan version on sale',
+  'plan.paused': 'paused a plan',
+  'plan.published': 'resumed a plan',
+  'plan.archived': 'archived a plan',
+  'voucher.issued': 'made voucher codes',
+  'voucher.reissued': 'replaced a voucher code',
+  'voucher.redeemed': 'voucher used',
+  'voucher.suspended': 'suspended a voucher',
+  'voucher.reinstated': 'reinstated a voucher',
+  'voucher.revoked': 'cancelled a voucher',
+  'voucher.revealed_to_buyer': 'buyer viewed their code',
+  'order.created': 'order started',
+  'order.fulfilled': 'order completed',
+  'order.expired': 'order expired unpaid',
+  'order.refunded': 'order refunded',
+  'order.renewed': 'plan renewed',
+  'payment.created': 'payment started',
+  'payment.succeeded': 'payment confirmed',
+  'payment.failed': 'payment failed',
+  'payment.expired': 'payment expired',
+  'payment.mismatch': 'payment mismatch found',
+  'payment.manual_verify': 'checked a payment with Paystack',
+  'refund.requested': 'asked for a refund',
+  'refund.approved': 'approved a refund',
+  'refund.rejected': 'rejected a refund',
+  'refund.submitted': 'refund sent to Paystack',
+  'refund.succeeded': 'refund completed',
+  'refund.failed': 'refund failed',
+  'reconciliation.discrepancy': 'mismatch found',
+  'reconciliation.resolved': 'resolved a mismatch',
+  'entitlement.clock_started': 'plan time started',
+  'entitlement.expired': 'plan ended',
+  'entitlement.extended': 'extended a plan',
+  'entitlement.suspended': 'suspended a plan',
+  'entitlement.reactivated': 'reactivated a plan',
+  'entitlement.revoked': 'cancelled a plan',
+  'entitlement.device_released': 'freed a device slot',
+  'gateway.registered': 'added a Wi-Fi gateway',
+  'gateway.disabled': 'turned off a gateway',
+  'gateway.enabled': 'turned on a gateway',
+  'network.operation_failed': 'network job failed',
+  'network.operation_retried': 'retried a network job',
+  'network.reconcile_requested': 'asked for a network check',
+  'staff.owner_bootstrapped': 'first owner created',
+  'staff.created': 'added a staff member',
+  'staff.role_granted': 'gave a staff role',
+  'staff.role_revoked': 'removed a staff role',
+  'staff.disabled': 'disabled a staff account',
+  'staff.credentials_reset': 'reset someone’s sign-in',
+  'support.ticket_created': 'support message received',
+  'privacy.data_exported': 'resident downloaded their data',
+  'privacy.erasure_requested': 'resident asked to delete their data',
+};
+
+export function actionLabel(action: string): string {
+  return ACTIONS[action] ?? action.replace(/[._]/g, ' ');
+}
+
+/** Rough grouping for the coloured dot. */
+export function actionTone(action: string): string {
+  if (/failed|mismatch|discrepancy|revoked|disabled|departed|cancel/.test(action)) return 'warn';
+  if (/refund|payment|order/.test(action)) return 'info';
+  if (/succeeded|fulfilled|granted|created|published/.test(action)) return 'ok';
+  return 'muted';
+}
+
+export const ROLE_LABEL: Record<string, string> = {
+  OWNER: 'Owner',
+  PROPERTY_ADMIN: 'Manager',
+  NETWORK_ADMIN: 'Network',
+  FINANCE: 'Finance',
+  SUPPORT: 'Front desk',
+};
+
+export const ROLE_HINT: Record<string, string> = {
+  OWNER: 'Everything, at every lodge',
+  PROPERTY_ADMIN: 'Residents, rooms, plans, vouchers, support',
+  NETWORK_ADMIN: 'Wi-Fi equipment and connections only',
+  FINANCE: 'Payments, refunds, reports',
+  SUPPORT: 'Look-ups and support messages; no refunds',
+};
