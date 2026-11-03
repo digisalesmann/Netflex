@@ -338,7 +338,7 @@ describe('tenant account', () => {
   it('preferences, profile, export and erasure request', async () => {
     const t = await tenant();
     const p = await t.agent.get('/api/v1/me/preferences').expect(200);
-    expect(p.body.data.channelsAvailable).toEqual({ sms: false, email: false });
+    expect(p.body.data.channelsAvailable).toEqual({ sms: false, email: true });
     const prefs = {
       sms: { expiryReminders: false, receipts: true, outageNotices: true },
       email: { expiryReminders: false, receipts: false, outageNotices: false },

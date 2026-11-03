@@ -16,3 +16,6 @@ out/
 *.log
 apps/web/next-env.d.ts
 e2e/.state/
+
+# Database backups hold personal data; never commit them.
+/backups/

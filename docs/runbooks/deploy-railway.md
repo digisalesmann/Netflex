@@ -85,13 +85,11 @@ Paystack dashboard → Settings → API Keys & Webhooks (live mode):
 
 ## 6. Turning on paid access
 
-`PAID_ACCESS_ENABLED=true` only after a paid sign-up at the lodge actually switches on Wi-Fi:
-
-1. Router installed (Starlink Mini in bypass mode → router → access points).
-2. On-site test passed ([poc-test-plan.md](../network/poc-test-plan.md)) and the real router adapter enabled.
-3. One real ₦ purchase end to end: pay → code → online → expires → offline.
+`PAID_ACCESS_ENABLED=true` (on **api** and **worker**) only after a paid sign-up at the lodge actually switches on Wi-Fi. The steps, tests and fallback are in the [launch checklist](../launch/launch-checklist.md), sections C and D.
 
 Until then the site, accounts, sign-in emails and plan pages are live, and nobody can be charged for access the network can't deliver.
+
+Backups: [backups-and-restore.md](backups-and-restore.md).
 
 ## Updating
 

@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { recordAudit } from '@netflex/core';
+import type { NetflexConfig } from '@netflex/config';
 import type { Prisma, PrismaClient } from '@netflex/database';
 import { formatMoney, isCurrencyCode, money } from '@netflex/domain';
 import { z } from 'zod';
@@ -24,7 +25,7 @@ import {
 } from '../auth/decorators.js';
 import { notFound } from '../common/prisma-errors.js';
 import { ZodPipe } from '../common/zod.js';
-import { PRISMA } from '../infra/tokens.js';
+import { CONFIG, PRISMA } from '../infra/tokens.js';
 
 const Profile = z.strictObject({ displayName: z.string().trim().min(1).max(120) });
 const channelPrefs = z.strictObject({
@@ -54,7 +55,10 @@ const fmt = (amountMinor: bigint, currency: string) =>
 @ApiTags('me: account')
 @Controller({ path: 'me' })
 export class AccountController {
-  constructor(@Inject(PRISMA) private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject(PRISMA) private readonly prisma: PrismaClient,
+    @Inject(CONFIG) private readonly config: NetflexConfig,
+  ) {}
 
   @Patch()
   async profile(
@@ -176,8 +180,8 @@ export class AccountController {
     });
     return {
       preferences: { ...DEFAULT_PREFS, ...(u.notificationPrefs as object) },
-      // Honest about delivery: only sign-in codes are emailed so far; SMS is not used.
-      channelsAvailable: { sms: false, email: false },
+      // Receipts and reminders go by email when email is set up; SMS is not used.
+      channelsAvailable: { sms: false, email: this.config.EMAIL_PROVIDER !== 'none' },
     };
   }
 

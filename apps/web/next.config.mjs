@@ -1,6 +1,8 @@
 // @ts-check
 /** Security headers for every page (spec §24). The CSP allows only this origin plus Paystack checkout redirects. */
 const securityHeaders = [
+  // Browsers ignore this over plain http, so it's harmless locally.
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'X-Frame-Options', value: 'DENY' },

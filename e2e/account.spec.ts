@@ -94,7 +94,10 @@ test('support request, preferences, data export and sign-out', async ({ page }) 
   await expect(page.getByText('No internet in G1')).toBeVisible();
 
   await page.goto('/account/settings');
-  await expect(page.getByText(/Messages aren['’]t being sent yet/)).toBeVisible();
+  // Email is set up, so the "not being sent" notice is gone and outage notices aren't offered.
+  await expect(page.getByLabel('Reminder before my plan ends').first()).toBeVisible();
+  await expect(page.getByText(/aren['’]t being sent/)).toHaveCount(0);
+  await expect(page.getByText('Outage notices')).toHaveCount(0);
   await page.getByLabel('Reminder before my plan ends').first().uncheck();
   await page.getByRole('button', { name: 'Save choices' }).click();
   await expect(page.getByText('Notification choices saved.')).toBeVisible();

@@ -151,7 +151,7 @@ export function PlanExplorer({
             {shown.length === 1 ? '' : 's'} shown above.
           </p>
         </div>
-        <div className="compare" role="region" aria-labelledby="compare-title" tabIndex={0}>
+        <div className="compare" role="region" aria-label="Comparison table" tabIndex={0}>
           <table>
             <thead>
               <tr>
