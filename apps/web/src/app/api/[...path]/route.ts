@@ -44,8 +44,10 @@ async function proxy(
     const v = req.headers.get(h);
     if (v) headers.set(h, v);
   }
+  // Prefer the address set by the hosting edge (X-Real-IP on Railway): the first
+  // X-Forwarded-For entry can be typed in by the visitor.
   const prior = req.headers.get('x-forwarded-for');
-  const client = prior?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || '';
+  const client = req.headers.get('x-real-ip')?.trim() || prior?.split(',')[0]?.trim() || '';
   if (client) headers.set('x-forwarded-for', client);
 
   const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
