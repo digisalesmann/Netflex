@@ -6,7 +6,7 @@ const API = process.env.API_INTERNAL_URL ?? 'http://localhost:4000';
 export async function serverApi<T>(
   path: string,
   opts: { auth?: boolean; revalidate?: number } = {},
-): Promise<{ status: number; data: T | null }> {
+): Promise<{ status: number; data: T | null; meta?: { nextCursor?: string | null } }> {
   const h: Record<string, string> = { Accept: 'application/json' };
   if (opts.auth) {
     const c = (await cookies()).toString();
@@ -21,8 +21,11 @@ export async function serverApi<T>(
         ? { cache: 'no-store' as const }
         : { next: { revalidate: opts.revalidate ?? 60 } }),
     });
-    const json = (await res.json().catch(() => null)) as { data?: T } | null;
-    return { status: res.status, data: res.ok ? (json?.data ?? null) : null };
+    const json = (await res.json().catch(() => null)) as {
+      data?: T;
+      meta?: { nextCursor?: string | null };
+    } | null;
+    return { status: res.status, data: res.ok ? (json?.data ?? null) : null, meta: json?.meta };
   } catch {
     return { status: 0, data: null };
   }
